@@ -1,0 +1,12 @@
+package com.platform.controlplane.model;
+
+public enum ThreatType {
+    ANOMALOUS_VELOCITY,
+    ENDPOINT_FUZZING,
+    UNUSUAL_USER_AGENT,
+    CREDENTIAL_STUFFING,
+    ANOMALOUS_PAYLOAD_SIZE,
+    RATE_LIMIT_EXCEEDED,
+    UNAUTHORIZED_ACCESS,
+    UNSPECIFIED_ANOMALY
+}

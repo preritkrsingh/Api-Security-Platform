@@ -1,0 +1,33 @@
+server:
+  port: ${GATEWAY_PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: ${GATEWAY_CONNECT_TIMEOUT_MS:3000}
+        response-timeout: ${GATEWAY_RESPONSE_TIMEOUT_MS:5s}
+      routes:
+        - id: dynamic-proxy-route
+          uri: ${BACKEND_URL:http://localhost:8081}
+          predicates:
+            - Path=/proxy/**
+        - id: protected-sample-backend
+          uri: ${BACKEND_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/**
+
+control-plane:
+  url: ${CONTROL_PLANE_URL:http://localhost:8082}
+  cache-ttl-ms: ${GATEWAY_CONFIG_CACHE_TTL_MS:5000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

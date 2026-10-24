@@ -1,0 +1,55 @@
+services:
+  shopnex-db:
+    image: postgres:16-alpine
+    container_name: shopnex-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-shopnex_db}
+      POSTGRES_USER: ${DB_USERNAME:-shopnex_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-shopnex_secure_password}
+    ports:
+      - "${DB_PORT:-5436}:5432"
+    volumes:
+      - shopnex-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME:-shopnex_user} -d ${DB_NAME:-shopnex_db} || exit 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - shopnex-network
+
+  shopnex-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopnex-demo-api
+    environment:
+      SERVER_PORT: ${SERVER_PORT:-8081}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://shopnex-db:5432/${DB_NAME:-shopnex_db}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-shopnex_user}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-shopnex_secure_password}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      FLYWAY_ENABLED: "true"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
+    ports:
+      - "${SERVER_PORT:-8081}:8081"
+    depends_on:
+      shopnex-db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - shopnex-network
+
+volumes:
+  shopnex-postgres-data:
+    name: shopnex-postgres-data
+
+networks:
+  shopnex-network:
+    name: shopnex-network

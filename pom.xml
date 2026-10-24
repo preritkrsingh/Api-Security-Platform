@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.platform</groupId>
+    <artifactId>platform-parent</artifactId>
+    <version>0.1.0</version>
+    <packaging>pom</packaging>
+    <name>AI-Based API Security Platform - Parent</name>
+    <description>Root reactor for AI-Based API Security Threat Detection and Risk Assessment Platform</description>
+
+    <modules>
+        <module>gateway</module>
+        <module>control-plane</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+</project>

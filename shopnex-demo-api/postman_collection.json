@@ -1,0 +1,332 @@
+{
+  "info": {
+    "name": "ShopNex Demo API",
+    "_postman_id": "7b8e51a2-1134-4b55-a50d-830f6a27e001",
+    "description": "Ready-to-use Postman Collection for ShopNex Demo API and VEYRION API Gateway Integration Testing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "veyrion_gateway_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "api_id",
+      "value": "api_shopnex_demo",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "asp_live_replace_with_minted_key",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. System Health",
+      "item": [
+        {
+          "name": "Application Health (/api/health)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            }
+          }
+        },
+        {
+          "name": "Actuator Health (/actuator/health)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/actuator/health",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Products",
+      "item": [
+        {
+          "name": "List Products (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products?page=0&size=10&sortBy=id&sortDir=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" },
+                { "key": "sortBy", "value": "id" },
+                { "key": "sortDir", "value": "asc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter Products by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products?category=Electronics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"],
+              "query": [
+                { "key": "category", "value": "Electronics" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Smart Ambient Desk Lamp\",\n  \"description\": \"RGB LED desk lamp with touch controls and smartphone app integration\",\n  \"price\": 59.99,\n  \"stockQuantity\": 40,\n  \"category\": \"Electronics\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"]
+            }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ergonomic Mechanical Keyboard v2\",\n  \"description\": \"Upgraded switches with sound-dampening foam\",\n  \"price\": 139.99,\n  \"stockQuantity\": 45,\n  \"category\": \"Electronics\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products/8",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "8"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Customers",
+      "item": [
+        {
+          "name": "Get Customer by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/customers/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sarah Connor\",\n  \"email\": \"sarah.connor@example.com\",\n  \"phone\": \"+1-555-0144\",\n  \"address\": \"100 Cyberdyne Way, Los Angeles, CA\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/customers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Orders",
+      "item": [
+        {
+          "name": "List Orders (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/orders?page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/orders/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Order (Valid Purchase)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 1,\n  \"items\": [\n    {\n      \"productId\": 2,\n      \"quantity\": 1\n    },\n    {\n      \"productId\": 5,\n      \"quantity\": 2\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Create Order - Insufficient Stock (Negative Test)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 1,\n  \"items\": [\n    {\n      \"productId\": 2,\n      \"quantity\": 9999\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Orders by Customer ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/orders/customer/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders", "customer", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. VEYRION Gateway Proxied Requests",
+      "item": [
+        {
+          "name": "Gateway - List Products (With X-API-Key)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{veyrion_gateway_url}}/proxy/{{api_id}}/api/products",
+              "host": ["{{veyrion_gateway_url}}"],
+              "path": ["proxy", "{{api_id}}", "api", "products"]
+            }
+          }
+        },
+        {
+          "name": "Gateway - Missing API Key (Expected 401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{veyrion_gateway_url}}/proxy/{{api_id}}/api/products",
+              "host": ["{{veyrion_gateway_url}}"],
+              "path": ["proxy", "{{api_id}}", "api", "products"]
+            }
+          }
+        },
+        {
+          "name": "Gateway - Create Order (With X-API-Key)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 1,\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{veyrion_gateway_url}}/proxy/{{api_id}}/api/orders",
+              "host": ["{{veyrion_gateway_url}}"],
+              "path": ["proxy", "{{api_id}}", "api", "orders"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopNex — India & Worldwide's Premier Enterprise Tech & Hardware Store</title>
+  <meta name="description" content="ShopNex: Giant enterprise hardware and developer equipment storefront inspired by Amazon & Flipkart. Shielded by VEYRION API Security Gateway.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ========================================================================= -->
+  <!-- 0. TOP TICKER ANNOUNCEMENT STRIP (Amazon / Flipkart Style)                 -->
+  <!-- ========================================================================= -->
+  <div class="top-ticker-strip">
+    <div class="ticker-inner">
+      <span class="ticker-badge">⚡ GREAT TECH FESTIVAL</span>
+      <span class="ticker-text">Up to 45% Off on Enterprise Silicon &bull; Instant 10% Bank Discount on HDFC &amp; Chase &bull; Free 1-Day Prime Dispatch on all orders</span>
+      <span class="ticker-timer" id="ticker-countdown">Ends in: <strong id="ticker-timer-val">05h : 24m : 18s</strong></span>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 1. MEGA TOP NAVIGATION (Amazon & Flipkart Hybrid)                          -->
+  <!-- ========================================================================= -->
+  <header class="navbar" id="navbar">
+    <div class="nav-container">
+      
+      <!-- Brand Logo with Amazon-style Smile Accent -->
+      <a href="#" class="nav-brand" aria-label="ShopNex Home">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#090a0f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div class="brand-text-wrap">
+          <div class="brand-title">Shop<span>Nex</span><span class="brand-tld">.in</span></div>
+          <span class="brand-subtitle">ENTERPRISE PRIME</span>
+        </div>
+      </a>
+
+      <!-- Deliver to Location Selector (Amazon Style) -->
+      <div class="nav-location" id="nav-location-btn" title="Change delivery location">
+        <svg class="loc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+        <div class="loc-text">
+          <span class="loc-sub" id="loc-deliver-to">Deliver to Guest</span>
+          <span class="loc-main" id="loc-city">Austin 78701 ▼</span>
+        </div>
+      </div>
+
+      <!-- Mega Search Bar with Category Select (Amazon Style) -->
+      <div class="nav-search-mega">
+        <div class="search-category-wrap">
+          <select id="search-cat-select" class="search-cat-dropdown">
+            <option value="all">All Categories</option>
+            <option value="Computing">Computing</option>
+            <option value="Displays">Displays</option>
+            <option value="Audio">Audio</option>
+            <option value="Keyboards">Keyboards</option>
+            <option value="Wearables">Wearables</option>
+            <option value="Accessories">Accessories</option>
+            <option value="Developer Gear">Developer Gear</option>
+          </select>
+        </div>
+        <input type="text" id="search-input" placeholder="Search Amazon & Flipkart hardware, workstations, 5K monitors, GaN docks..." autocomplete="off">
+        <button class="search-btn" id="search-submit-btn" aria-label="Search Catalog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Region & Security Status Pill -->
+      <div class="status-chip" id="api-status-pill" title="Gateway & Backend Health Status">
+        <span class="pulse-dot"></span>
+        <span>Gateway: Shielded</span>
+      </div>
+
+      <!-- User Account & Lists (Amazon Style Dropdown) -->
+      <div class="nav-item-dropdown" id="account-dropdown-wrap">
+        <button class="nav-account-btn" id="auth-trigger-btn">
+          <span class="nav-acc-line1" id="nav-user-greeting">Hello, Sign In</span>
+          <span class="nav-acc-line2" id="nav-user-account-lbl">Account &amp; Lists <span class="arrow-down">▾</span></span>
+        </button>
+
+        <!-- Hover / Click Dropdown Menu -->
+        <div class="account-menu-card" id="account-menu-dropdown">
+          <div class="account-menu-header" id="menu-logged-out-header">
+            <button class="btn-amazon-primary" id="btn-menu-signin">Sign In</button>
+            <div class="menu-register-prompt">New customer? <a href="#" id="menu-register-link">Start here.</a></div>
+          </div>
+          <div class="account-menu-header" id="menu-logged-in-header" style="display: none;">
+            <div class="menu-user-name" id="menu-display-name">Alice Vance</div>
+            <div class="menu-user-email" id="menu-display-email">alice.vance@example.com</div>
+          </div>
+          <div class="menu-divider"></div>
+          <div class="menu-columns">
+            <div class="menu-col">
+              <h4>Your Lists</h4>
+              <a href="#" id="menu-link-wishlist">Your Wishlist (<span id="menu-wishlist-count">0</span>)</a>
+              <a href="#" id="menu-link-explore">Explore Catalog</a>
+            </div>
+            <div class="menu-col">
+              <h4>Your Account</h4>
+              <a href="#" id="menu-link-orders">Your Orders</a>
+              <a href="#" id="menu-link-profile">Account Settings</a>
+              <a href="#" id="menu-link-add-product">+ Add Hardware Item</a>
+              <a href="#" id="menu-btn-signout" style="color: #f43f5e; display: none;">Sign Out</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Returns & Orders Shortcut -->
+      <button class="nav-orders-btn" id="orders-toggle-btn" title="View your order history">
+        <span class="nav-ord-line1">Returns</span>
+        <span class="nav-ord-line2">&amp; Orders</span>
+      </button>
+
+      <!-- Wishlist Shortcut (Flipkart Style) -->
+      <button class="nav-wishlist-btn" id="wishlist-toggle-btn" title="View saved items">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+        </svg>
+        <span class="badge-count" id="wishlist-count">0</span>
+      </button>
+
+      <!-- Cart Shortcut (Amazon Style) -->
+      <button class="btn-cart-mega" id="cart-toggle-btn" title="View shopping cart">
+        <div class="cart-icon-box">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span class="cart-badge-mega" id="cart-count">0</span>
+        </div>
+        <div class="cart-label-wrap">
+          <span class="cart-subtotal-nav" id="cart-nav-total">$0.00</span>
+          <span class="cart-title-nav">Cart</span>
+        </div>
+      </button>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 2. AMAZON SUB-NAVIGATION MEGA BAR                                         -->
+  <!-- ========================================================================= -->
+  <nav class="subnav-mega">
+    <div class="subnav-container">
+      <button class="subnav-all-btn" id="mega-drawer-trigger">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        <span>All</span>
+      </button>
+
+      <div class="subnav-links">
+        <a href="#catalog-section" class="subnav-item highlight-deal" data-dept="all">
+          <span class="deal-flame">⚡</span> Today's Deals
+        </a>
+        <a href="#catalog-section" class="subnav-item" data-dept="Computing">💻 Workstations &amp; Laptops</a>
+        <a href="#catalog-section" class="subnav-item" data-dept="Displays">🖥️ 5K &amp; Curved Monitors</a>
+        <a href="#catalog-section" class="subnav-item" data-dept="Audio">🎧 Studio Acoustics</a>
+        <a href="#catalog-section" class="subnav-item" data-dept="Keyboards">⌨️ Custom Keyboards</a>
+        <a href="#catalog-section" class="subnav-item" data-dept="Wearables">⌚ Smart Wearables</a>
+        <a href="#catalog-section" class="subnav-item" data-dept="Accessories">🔌 GaN Power &amp; Docks</a>
+        <a href="#catalog-section" class="subnav-item" data-dept="Developer Gear">🛠️ Hardware Lab Gear</a>
+      </div>
+
+      <div class="subnav-right">
+        <span class="subnav-assured-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+          ShopNex Assured
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========================================================================= -->
+  <!-- 3. FLIPKART & AMAZON PROMOTIONAL HERO CAROUSEL                            -->
+  <!-- ========================================================================= -->
+  <section class="hero-carousel-section">
+    <div class="carousel-wrapper">
+      <div class="carousel-track" id="carousel-track">
+        
+        <!-- Slide 1: Festival Mega Deal -->
+        <div class="carousel-slide slide-1 active">
+          <div class="slide-content">
+            <span class="slide-super-badge">MEGA HARDWARE FESTIVAL 2026</span>
+            <h1 class="slide-title">Extreme Computing &amp; AI Silicon Workstations</h1>
+            <p class="slide-sub">Up to 45% off on Octa-core Xeon Rigs, Liquid-Cooled Dev Laptops, and PCIe 5.0 Storage. Complete with VEYRION cryptographic security.</p>
+            <div class="slide-cta-row">
+              <button class="btn-carousel-cta" data-action="explore-dept" data-dept="Computing">Shop Workstations</button>
+              <span class="slide-offer-tag">Instant $150 Off with Promo <strong>TITAN26</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 2: Displays & OLEDs -->
+        <div class="carousel-slide slide-2">
+          <div class="slide-content">
+            <span class="slide-super-badge">ULTRA-DEFINITION PROMO</span>
+            <h2 class="slide-title">5K Studio Retina &amp; 34-Inch Curved QD-OLEDs</h2>
+            <p class="slide-sub">Pixel-perfect color accuracy, 120Hz refresh rates, Thunderbolt 4 single-cable hub connectivity for professional coders.</p>
+            <div class="slide-cta-row">
+              <button class="btn-carousel-cta" data-action="explore-dept" data-dept="Displays">Explore 5K Displays</button>
+              <span class="slide-offer-tag">Starting from <strong>$699.00</strong> &bull; Free Desk Mount</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 3: Audio & Keyboards -->
+        <div class="carousel-slide slide-3">
+          <div class="slide-content">
+            <span class="slide-super-badge">FLIPKART BIG TECH DAYS</span>
+            <h2 class="slide-title">Audiophile Acoustics &amp; CNC Mechanical Keyboards</h2>
+            <p class="slide-sub">Hot-swappable tactile switches, aircraft-grade aluminum cases, 96kHz DACs, and active noise cancelling studio cans.</p>
+            <div class="slide-cta-row">
+              <button class="btn-carousel-cta" data-action="explore-dept" data-dept="Keyboards">Upgrade Input Gear</button>
+              <span class="slide-offer-tag">Next-Day Prime Delivery Guaranteed</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Carousel Controls -->
+      <button class="carousel-arrow prev" id="carousel-prev" aria-label="Previous slide">&#10094;</button>
+      <button class="carousel-arrow next" id="carousel-next" aria-label="Next slide">&#10095;</button>
+
+      <!-- Carousel Dots -->
+      <div class="carousel-dots" id="carousel-dots">
+        <span class="dot active" data-slide="0"></span>
+        <span class="dot" data-slide="1"></span>
+        <span class="dot" data-slide="2"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 4. AMAZON 4-CARD MULTI-FEATURE GRID                                       -->
+  <!-- ========================================================================= -->
+  <section class="quad-cards-section">
+    <div class="quad-container">
+      
+      <!-- Card 1: Deal of the Day with Claimed Bar -->
+      <div class="quad-card">
+        <div class="quad-badge-row">
+          <span class="tag-lightning">⚡ DEAL OF THE DAY</span>
+          <span class="tag-claimed">74% Claimed</span>
+        </div>
+        <h3 class="quad-title">Titanium Studio Workstation Pro</h3>
+        <div class="quad-hero-visual">💻</div>
+        <div class="quad-price-deal">
+          <span class="deal-discount-pill">-18%</span>
+          <span class="deal-price">$2,299.00</span>
+          <span class="deal-mrp">$2,799.00</span>
+        </div>
+        <div class="deal-progress-bar">
+          <div class="deal-progress-fill" style="width: 74%;"></div>
+        </div>
+        <button class="btn-amazon-primary quad-cta-btn" id="btn-quick-add-deal">Add Deal to Cart</button>
+      </div>
+
+      <!-- Card 2: 4-Grid Category Tiles -->
+      <div class="quad-card">
+        <h3 class="quad-title">Top Categories for Developers</h3>
+        <div class="mini-grid-4">
+          <div class="mini-tile" data-dept="Computing">
+            <span class="tile-icon">💻</span>
+            <span class="tile-name">Computing</span>
+          </div>
+          <div class="mini-tile" data-dept="Displays">
+            <span class="tile-icon">🖥️</span>
+            <span class="tile-name">5K Displays</span>
+          </div>
+          <div class="mini-tile" data-dept="Keyboards">
+            <span class="tile-icon">⌨️</span>
+            <span class="tile-name">Keyboards</span>
+          </div>
+          <div class="mini-tile" data-dept="Accessories">
+            <span class="tile-icon">🔌</span>
+            <span class="tile-name">GaN Docks</span>
+          </div>
+        </div>
+        <a href="#catalog-section" class="quad-link" id="link-explore-all-cat">See all departments &rarr;</a>
+      </div>
+
+      <!-- Card 3: ShopNex Assured Guarantee -->
+      <div class="quad-card">
+        <h3 class="quad-title">ShopNex Assured Guarantee</h3>
+        <div class="mini-grid-4">
+          <div class="mini-tile-plain">
+            <span class="tile-icon">🚀</span>
+            <span class="tile-bold">Same-Day</span>
+            <span class="tile-sub">Dispatch</span>
+          </div>
+          <div class="mini-tile-plain">
+            <span class="tile-icon">🛡️</span>
+            <span class="tile-bold">VEYRION</span>
+            <span class="tile-sub">Shielded API</span>
+          </div>
+          <div class="mini-tile-plain">
+            <span class="tile-icon">🔄</span>
+            <span class="tile-bold">30 Days</span>
+            <span class="tile-sub">Easy Returns</span>
+          </div>
+          <div class="mini-tile-plain">
+            <span class="tile-icon">🔒</span>
+            <span class="tile-bold">ACID Safe</span>
+            <span class="tile-sub">Postgres 16</span>
+          </div>
+        </div>
+        <a href="#catalog-section" class="quad-link">Learn about buyer security &rarr;</a>
+      </div>
+
+      <!-- Card 4: Personalized / Quick Login Box -->
+      <div class="quad-card account-quad-box" id="quad-account-box">
+        <div id="quad-box-logged-out">
+          <h3 class="quad-title">Sign In for the Best Experience</h3>
+          <p class="quad-desc">Track orders, manage your developer equipment wishlist, and enjoy 1-click Express Prime checkout.</p>
+          <button class="btn-amazon-primary quad-cta-btn" id="btn-quad-signin">Sign In Securely</button>
+          <div class="demo-quick-row">
+            <span>Quick Demo:</span>
+            <button class="demo-chip-btn" data-demo-user="1">Alice</button>
+            <button class="demo-chip-btn" data-demo-user="2">Bob</button>
+            <button class="demo-chip-btn" data-demo-user="3">Charlie</button>
+          </div>
+        </div>
+
+        <div id="quad-box-logged-in" style="display: none;">
+          <h3 class="quad-title" id="quad-welcome-title">Welcome back, Alice!</h3>
+          <p class="quad-desc" id="quad-welcome-sub">Deliver to Austin 78701 &bull; Prime Member</p>
+          <div class="quad-user-shortcuts">
+            <button class="btn-secondary" id="quad-btn-my-orders" style="width: 100%;">View Your Orders</button>
+            <button class="btn-secondary" id="quad-btn-my-wishlist" style="width: 100%; margin-top: 8px;">Your Wishlist</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 5. MAIN STOREFRONT (FILTER SIDEBAR + RICH CATALOG GRID)                   -->
+  <!-- ========================================================================= -->
+  <section class="store-section" id="catalog-section">
+    <div class="store-layout-container">
+      
+      <!-- Left Filter Sidebar (Amazon / Flipkart Style) -->
+      <aside class="store-sidebar">
+        
+        <!-- Category Filter -->
+        <div class="sidebar-block">
+          <div class="sidebar-block-header">
+            <h3>Department</h3>
+            <button class="btn-text-small" id="btn-clear-category">Clear</button>
+          </div>
+          <div class="category-filter-list" id="sidebar-category-list">
+            <button class="cat-filter-item active" data-category="all">
+              <span>All Products</span>
+              <span class="cat-pill-count" id="count-all">33</span>
+            </button>
+            <button class="cat-filter-item" data-category="Computing">
+              <span>💻 Computing</span>
+              <span class="cat-pill-count">4</span>
+            </button>
+            <button class="cat-filter-item" data-category="Displays">
+              <span>🖥️ Displays &amp; Monitors</span>
+              <span class="cat-pill-count">5</span>
+            </button>
+            <button class="cat-filter-item" data-category="Audio">
+              <span>🎧 Studio Audio</span>
+              <span class="cat-pill-count">6</span>
+            </button>
+            <button class="cat-filter-item" data-category="Keyboards">
+              <span>⌨️ Keyboards &amp; Input</span>
+              <span class="cat-pill-count">3</span>
+            </button>
+            <button class="cat-filter-item" data-category="Electronics">
+              <span>⚡ Electronics &amp; Gear</span>
+              <span class="cat-pill-count">3</span>
+            </button>
+            <button class="cat-filter-item" data-category="Wearables">
+              <span>⌚ Smart Wearables</span>
+              <span class="cat-pill-count">4</span>
+            </button>
+            <button class="cat-filter-item" data-category="Accessories">
+              <span>🔌 Hubs &amp; GaN Power</span>
+              <span class="cat-pill-count">5</span>
+            </button>
+            <button class="cat-filter-item" data-category="Developer Gear">
+              <span>🛠️ Developer Gear</span>
+              <span class="cat-pill-count">2</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Customer Rating Filter (Amazon Style) -->
+        <div class="sidebar-block">
+          <h3>Customer Reviews</h3>
+          <div class="rating-filter-group">
+            <button class="rating-filter-item" data-min-rating="4.5">
+              <span class="stars-gold">★★★★★</span>
+              <span class="rating-text">4.5 &amp; Up</span>
+            </button>
+            <button class="rating-filter-item" data-min-rating="4.0">
+              <span class="stars-gold">★★★★☆</span>
+              <span class="rating-text">4.0 &amp; Up</span>
+            </button>
+            <button class="rating-filter-item" data-min-rating="3.0">
+              <span class="stars-gold">★★★☆☆</span>
+              <span class="rating-text">3.0 &amp; Up</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Max Price Slider -->
+        <div class="sidebar-block">
+          <div class="sidebar-block-header">
+            <h3>Price Range</h3>
+            <span id="price-slider-label" class="sidebar-val">$2,500</span>
+          </div>
+          <input type="range" id="price-slider" min="20" max="2500" step="10" value="2500" class="range-slider">
+          <div class="price-range-scale">
+            <span>$20</span>
+            <span>$1,250</span>
+            <span>$2,500+</span>
+          </div>
+        </div>
+
+        <!-- Discount Percentage Filter (Flipkart Style) -->
+        <div class="sidebar-block">
+          <h3>Discount</h3>
+          <div class="filter-radio-group">
+            <label class="filter-radio-label">
+              <input type="radio" name="discount-filter" value="0" checked>
+              <span>All Discounts</span>
+            </label>
+            <label class="filter-radio-label">
+              <input type="radio" name="discount-filter" value="15">
+              <span>15% Off or More</span>
+            </label>
+            <label class="filter-radio-label">
+              <input type="radio" name="discount-filter" value="25">
+              <span>25% Off or More</span>
+            </label>
+            <label class="filter-radio-label">
+              <input type="radio" name="discount-filter" value="30">
+              <span>30% Off or More</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Stock Availability -->
+        <div class="sidebar-block">
+          <h3>Availability</h3>
+          <div class="filter-radio-group">
+            <label class="filter-radio-label">
+              <input type="radio" name="stock-filter" value="all" checked>
+              <span>Include Out of Stock</span>
+            </label>
+            <label class="filter-radio-label">
+              <input type="radio" name="stock-filter" value="instock">
+              <span>In Stock Only (&gt; 0)</span>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn-secondary" id="btn-reset-all-filters" style="width: 100%; justify-content: center;">
+          Clear All Filters
+        </button>
+      </aside>
+
+      <!-- Right Main Catalog Content -->
+      <main class="store-main">
+        <!-- Main Toolbar -->
+        <div class="store-toolbar">
+          <div class="toolbar-left">
+            <h2 class="catalog-heading" id="catalog-title">All Hardware Products</h2>
+            <span class="catalog-count-badge" id="product-count-badge">33 Products</span>
+          </div>
+
+          <div class="toolbar-right">
+            <div class="sort-wrapper">
+              <label for="sort-select" class="sort-label">Sort by:</label>
+              <select class="sort-select" id="sort-select">
+                <option value="featured">Featured / Best Deals</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="rating-desc">Avg. Customer Review</option>
+                <option value="discount-desc">Biggest Discount %</option>
+                <option value="name-asc">Product Name: A to Z</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Filter Tags Bar -->
+        <div class="active-filters-bar" id="active-filters-bar" style="display: none;"></div>
+
+        <!-- Massive Amazon/Flipkart Product Cards Grid -->
+        <div class="products-grid" id="products-grid">
+          <!-- Injected dynamically via app.js -->
+        </div>
+      </main>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 6. AUTH MODAL (LOGIN & REGISTER - AMAZON / FLIPKART STYLE)                 -->
+  <!-- ========================================================================= -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal-card auth-modal-card">
+      <div class="auth-modal-header">
+        <div class="auth-modal-brand">
+          Shop<span>Nex</span><span class="brand-tld">.in</span>
+        </div>
+        <button class="btn-close" id="auth-modal-close">&times;</button>
+      </div>
+
+      <!-- Auth Navigation Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="tab-btn-signin">Sign In</button>
+        <button class="auth-tab-btn" id="tab-btn-register">Create Account</button>
+      </div>
+
+      <!-- Tab 1: Sign In -->
+      <div class="auth-tab-pane active" id="pane-signin">
+        <form id="form-signin" class="form-body">
+          <div class="form-group">
+            <label class="form-label" for="signin-email">Email or Mobile Phone *</label>
+            <input type="email" id="signin-email" class="form-input" required placeholder="alice.vance@example.com">
+          </div>
+
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between;">
+              <label class="form-label" for="signin-password">Password *</label>
+              <span style="font-size: 11px; color: var(--accent-cyan);">Default: password123</span>
+            </div>
+            <input type="password" id="signin-password" class="form-input" required placeholder="••••••••">
+          </div>
+
+          <button type="submit" class="btn-amazon-primary auth-submit-btn" id="btn-signin-submit">
+            Sign In to ShopNex
+          </button>
+
+          <!-- 1-Click Demo Accounts -->
+          <div class="demo-accounts-box">
+            <div class="demo-acc-title">1-Click Instant Demo Login:</div>
+            <div class="demo-acc-buttons">
+              <button type="button" class="btn-demo-acc" data-demo-email="alice.vance@example.com">
+                👤 Alice Vance (Texas)
+              </button>
+              <button type="button" class="btn-demo-acc" data-demo-email="bob.martin@example.com">
+                👤 Bob Martin (Oregon)
+              </button>
+              <button type="button" class="btn-demo-acc" data-demo-email="charlie.davis@example.com">
+                👤 Charlie Davis (California)
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tab 2: Create Account (Register) -->
+      <div class="auth-tab-pane" id="pane-register">
+        <form id="form-register" class="form-body">
+          <div class="form-group">
+            <label class="form-label" for="reg-name">Your Full Name *</label>
+            <input type="text" id="reg-name" class="form-input" required placeholder="First and last name">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-email">Email Address *</label>
+            <input type="email" id="reg-email" class="form-input" required placeholder="you@domain.com">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-password">Password * (at least 6 characters)</label>
+            <input type="password" id="reg-password" class="form-input" required minlength="6" placeholder="At least 6 characters">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-phone">Mobile Phone (for delivery SMS)</label>
+            <input type="tel" id="reg-phone" class="form-input" placeholder="+1-555-0199">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-address">Delivery Shipping Address</label>
+            <input type="text" id="reg-address" class="form-input" placeholder="Street, City, State, ZIP code">
+          </div>
+
+          <button type="submit" class="btn-amazon-primary auth-submit-btn" id="btn-register-submit">
+            Create Your ShopNex Account
+          </button>
+        </form>
+      </div>
+
+      <div class="auth-modal-footer">
+        <p>By continuing, you agree to ShopNex's Conditions of Use and Privacy Notice. Cryptographically protected by VEYRION API Gateway.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 7. AMAZON-STYLE SLIDE-OUT MEGA DRAWER ("☰ All")                           -->
+  <!-- ========================================================================= -->
+  <div class="mega-drawer-overlay" id="mega-drawer-overlay">
+    <div class="mega-drawer-panel" id="mega-drawer-panel">
+      
+      <!-- Top User Banner -->
+      <div class="mega-drawer-user-header">
+        <div class="user-avatar-circle">👤</div>
+        <div class="user-greeting-wrap">
+          <div class="user-greeting-title" id="mega-greeting-title">Hello, Sign In</div>
+          <div class="user-greeting-sub" id="mega-greeting-sub">ShopNex Prime Member</div>
+        </div>
+        <button class="mega-close-btn" id="mega-drawer-close">&times;</button>
+      </div>
+
+      <!-- Drawer Links Body -->
+      <div class="mega-drawer-content">
+        <div class="mega-section-title">Trending &amp; Deals</div>
+        <a href="#catalog-section" class="mega-item highlight-deal" data-mega-filter="deal">⚡ Today's Lightning Deals</a>
+        <a href="#catalog-section" class="mega-item" data-mega-filter="best-seller">🔥 Best Sellers in Hardware</a>
+        <a href="#catalog-section" class="mega-item" data-mega-filter="assured">🛡️ ShopNex Assured Verified</a>
+
+        <div class="mega-divider"></div>
+        <div class="mega-section-title">Shop By Department</div>
+        <a href="#catalog-section" class="mega-item" data-mega-dept="Computing">💻 Workstations &amp; Laptops</a>
+        <a href="#catalog-section" class="mega-item" data-mega-dept="Displays">🖥️ 5K &amp; Curved Monitors</a>
+        <a href="#catalog-section" class="mega-item" data-mega-dept="Audio">🎧 Studio Acoustic Headphones</a>
+        <a href="#catalog-section" class="mega-item" data-mega-dept="Keyboards">⌨️ Custom Mechanical Keyboards</a>
+        <a href="#catalog-section" class="mega-item" data-mega-dept="Wearables">⌚ Smart Health Wearables</a>
+        <a href="#catalog-section" class="mega-item" data-mega-dept="Accessories">🔌 GaN Power &amp; Docks</a>
+        <a href="#catalog-section" class="mega-item" data-mega-dept="Developer Gear">🛠️ Hardware Lab Gear</a>
+
+        <div class="mega-divider"></div>
+        <div class="mega-section-title">Help &amp; Settings</div>
+        <a href="#" class="mega-item" id="mega-link-account">Your Account</a>
+        <a href="#" class="mega-item" id="mega-link-orders">Your Orders</a>
+        <a href="#" class="mega-item" id="mega-link-wishlist">Your Wishlist</a>
+        <a href="#" class="mega-item" id="mega-link-signin" style="color: var(--accent-cyan);">Sign In / Register</a>
+        <a href="#" class="mega-item" id="mega-link-signout" style="color: #f43f5e; display: none;">Sign Out</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 8. WISHLIST SLIDE-OUT DRAWER                                              -->
+  <!-- ========================================================================= -->
+  <div class="drawer-overlay" id="wishlist-drawer-overlay">
+    <aside class="drawer" id="wishlist-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title-wrap">
+          <h3>Your Wishlist</h3>
+          <span class="drawer-subtitle" id="wishlist-items-summary">0 items saved</span>
+        </div>
+        <button class="btn-close" id="wishlist-drawer-close">&times;</button>
+      </div>
+      <div class="drawer-body" id="wishlist-items-container">
+        <!-- Injected via app.js -->
+      </div>
+    </aside>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 9. 1-CLICK INSTANT "BUY NOW" MODAL (AMAZON STYLE)                         -->
+  <!-- ========================================================================= -->
+  <div class="modal-overlay" id="buy-now-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="color: #f59e0b; display: flex; align-items: center; gap: 8px;">
+          ⚡ Instant 1-Click Checkout
+        </h3>
+        <button class="btn-close" id="buy-now-close">&times;</button>
+      </div>
+      <div class="modal-body-content" id="buy-now-content" style="padding: 20px;">
+        <!-- Injected dynamically via app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 10. SLIDE-OUT CART DRAWER                                                 -->
+  <!-- ========================================================================= -->
+  <div class="drawer-overlay" id="cart-drawer-overlay">
+    <aside class="drawer" id="cart-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title-wrap">
+          <h3>Shopping Cart</h3>
+          <span class="drawer-subtitle" id="cart-items-summary">0 items selected</span>
+        </div>
+        <button class="btn-close" id="cart-drawer-close">&times;</button>
+      </div>
+      <div class="drawer-body" id="cart-items-container">
+        <!-- Injected via cart.js / app.js -->
+      </div>
+      <div class="drawer-footer">
+        <div class="customer-select-wrap">
+          <label for="customer-select" class="customer-select-label">Active Customer for Order:</label>
+          <select id="customer-select" class="customer-select">
+            <option value="1">Alice Vance (alice.vance@example.com)</option>
+            <option value="2">Bob Martin (bob.martin@example.com)</option>
+            <option value="3">Charlie Davis (charlie.davis@example.com)</option>
+          </select>
+        </div>
+        <div class="checkout-summary">
+          <div class="summary-line">
+            <span>Subtotal:</span>
+            <span id="cart-subtotal-val">$0.00</span>
+          </div>
+          <div class="summary-line">
+            <span>Prime Shipping:</span>
+            <span style="color: #34d399; font-weight: 600;">FREE (1-Day)</span>
+          </div>
+          <div class="summary-line summary-total">
+            <span>Order Total:</span>
+            <span class="checkout-total-val" id="cart-total-amount">$0.00</span>
+          </div>
+        </div>
+        <button class="btn-amazon-primary btn-checkout-mega" id="checkout-btn" disabled>
+          Proceed to Checkout (POST /api/orders)
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 11. ORDER HISTORY DRAWER                                                  -->
+  <!-- ========================================================================= -->
+  <div class="drawer-overlay" id="orders-drawer-overlay">
+    <aside class="drawer" id="orders-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title-wrap">
+          <h3>Your Orders &amp; Invoices</h3>
+          <span class="drawer-subtitle">Verified in PostgreSQL 16</span>
+        </div>
+        <button class="btn-close" id="orders-drawer-close">&times;</button>
+      </div>
+      <div class="drawer-body" id="orders-list-container">
+        <!-- Injected via app.js -->
+      </div>
+    </aside>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 12. QUICK VIEW PRODUCT MODAL                                              -->
+  <!-- ========================================================================= -->
+  <div class="modal-overlay" id="quick-view-modal">
+    <div class="modal-card quick-view-card">
+      <div class="modal-header">
+        <h3 id="qv-title">Product Details</h3>
+        <button class="btn-close" id="quick-view-close">&times;</button>
+      </div>
+      <div class="quick-view-body" id="quick-view-content">
+        <!-- Injected dynamically via app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 13. ADD PRODUCT MODAL                                                     -->
+  <!-- ========================================================================= -->
+  <div class="modal-overlay" id="add-product-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add New Hardware Item</h3>
+        <button class="btn-close" id="add-product-close">&times;</button>
+      </div>
+      <form id="add-product-form" class="form-body">
+        <div class="form-group">
+          <label class="form-label" for="prod-name">Product Name *</label>
+          <input type="text" id="prod-name" name="name" class="form-input" required placeholder="e.g. 140W GaN Charging Hub">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="prod-category">Category *</label>
+          <select id="prod-category" name="category" class="form-input" required>
+            <option value="Computing">Computing</option>
+            <option value="Displays">Displays</option>
+            <option value="Audio">Audio</option>
+            <option value="Keyboards">Keyboards</option>
+            <option value="Wearables">Wearables</option>
+            <option value="Accessories">Accessories</option>
+            <option value="Developer Gear">Developer Gear</option>
+            <option value="Electronics">Electronics</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="prod-price">Deal Price ($) *</label>
+            <input type="number" id="prod-price" name="price" step="0.01" min="0.01" class="form-input" required placeholder="149.99">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prod-stock">Initial Stock *</label>
+            <input type="number" id="prod-stock" name="stockQuantity" min="0" class="form-input" required placeholder="25">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="prod-desc">Description</label>
+          <textarea id="prod-desc" name="description" class="form-input" rows="3" placeholder="Technical specifications, interface ports, chipset details..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-amazon-primary" style="margin-top: 8px;">Create Product (POST /api/products)</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 14. ORDER SUCCESS MODAL                                                   -->
+  <!-- ========================================================================= -->
+  <div class="modal-overlay" id="order-success-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="color: #34d399; display: flex; align-items: center; gap: 8px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          Order Confirmed &amp; Dispatched!
+        </h3>
+        <button class="btn-close" id="order-success-close">&times;</button>
+      </div>
+      <div style="padding: 24px;">
+        <div id="order-success-details">
+          <!-- Injected via app.js -->
+        </div>
+        <button class="btn-amazon-primary" style="width: 100%; justify-content: center; margin-top: 16px;" onclick="document.getElementById('order-success-modal').classList.remove('active')">
+          Continue Shopping
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- ========================================================================= -->
+  <!-- 15. EXPANSIVE 4-COLUMN FOOTER (Amazon / Flipkart Style)                    -->
+  <!-- ========================================================================= -->
+  <footer class="footer">
+    <div class="back-to-top" id="btn-back-to-top">
+      Back to top ↑
+    </div>
+
+    <div class="footer-container">
+      <div class="footer-grid">
+        <div class="footer-col brand-col">
+          <div class="footer-brand">
+            <span class="footer-brand-title">Shop<span>Nex</span><span class="brand-tld">.in</span></span>
+          </div>
+          <p class="footer-desc">
+            India &amp; Global Enterprise Tech Storefront designed after Flipkart &amp; Amazon. Built on Spring Boot 3.4, Java 21, and PostgreSQL 16. Serves as the independent demo target API for the VEYRION AI-Based API Security Threat Detection and Risk Assessment Platform.
+          </p>
+          <div class="footer-tags">
+            <span class="foot-tag">Spring Boot 3.4</span>
+            <span class="foot-tag">PostgreSQL 16</span>
+            <span class="foot-tag">Flyway V4</span>
+            <span class="foot-tag">Java 21 LTS</span>
+            <span class="foot-tag">SHA-256 Auth</span>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Get to Know Us</h4>
+          <ul class="footer-links">
+            <li><a href="#catalog-section">About ShopNex Prime</a></li>
+            <li><a href="#catalog-section">Hardware Lab Certification</a></li>
+            <li><a href="#catalog-section">Press Releases</a></li>
+            <li><a href="#catalog-section">Enterprise Science</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Connect with Us</h4>
+          <ul class="footer-links">
+            <li><span class="footer-static-item">Customer Support: 1-800-SHOPNEX</span></li>
+            <li><span class="footer-static-item">Twitter / X: @ShopNexTech</span></li>
+            <li><span class="footer-static-item">Discord: #shopnex-enterprise</span></li>
+            <li><span class="footer-static-item">GitHub: shopnex-demo-api</span></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>VEYRION Security Architecture</h4>
+          <ul class="footer-links code-links">
+            <li><code>POST /api/auth/register</code></li>
+            <li><code>POST /api/auth/login</code></li>
+            <li><code>GET /api/products</code></li>
+            <li><code>POST /api/orders</code></li>
+            <li><code>GET /api/orders/customer/{id}</code></li>
+            <li><code>GET /api/health</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 ShopNex.in, Inc. or its affiliates &bull; Target Application for VEYRION Final-Year Project Demonstration</p>
+        <p class="footer-subtext">Port 8081 &bull; PostgreSQL Port 5436 &bull; Fully Standalone Microservice</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

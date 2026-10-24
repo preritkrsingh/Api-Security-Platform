@@ -1,0 +1,32 @@
+server:
+  port: ${CONTROL_PLANE_PORT:8082}
+
+spring:
+  application:
+    name: control-plane
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:controlplanedb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.h2.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+platform:
+  security:
+    allow-local-development: ${ALLOW_LOCAL_DEVELOPMENT:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

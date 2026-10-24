@@ -1,0 +1,52 @@
+# Environments and Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.zip
+*.tar.gz
+
+# Java and Maven Build Artifacts
+target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/wrapper/maven-wrapper.jar
+
+# Python Artifacts
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.joblib
+*.pkl
+
+# Node / Frontend Artifacts
+node_modules/
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# IDE and Editor Files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# Logs and Diagnostics
+*.log
+logs/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
