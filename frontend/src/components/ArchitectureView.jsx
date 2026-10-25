@@ -1,417 +1,759 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  Handle,
+  Position,
+  MarkerType,
+  Panel,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+
 import {
   Shield,
-  Workflow,
-  Play,
-  Pause,
-  RotateCcw,
-  SkipForward,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
+  Zap,
   Server,
   Database,
   Laptop,
-  KeyRound,
-  Zap,
-  Activity,
-  Layers,
-  Clock,
+  Smartphone,
+  Terminal,
+  Play,
+  Pause,
+  RotateCcw,
+  Workflow,
   ArrowRight,
   Info,
-  Check,
-  ChevronRight,
-  Terminal,
+  Sliders,
+  Sparkles,
+  ExternalLink,
+  Layers,
+  Lock,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export default function ArchitectureView({ serviceStatus = {}, onNavigate }) {
-  // Scenario selector: "200_OK" | "401_AUTH" | "429_RATE" | "403_FORBIDDEN"
-  const [scenario, setScenario] = useState("200_OK");
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [speed, setSpeed] = useState(1); // 0.5, 1, 2
-  const [selectedNode, setSelectedNode] = useState(null);
+// --- Node Details Metadata Store ---
+const NODES_METADATA = {
+  client_web: {
+    id: "client_web",
+    title: "Web Browser Client",
+    type: "Ingress Source",
+    port: "Port 443 / HTTPS",
+    tech: "React 19 / Vite SPA",
+    detail:
+      "Dispatches e-commerce product catalog queries through the gateway perimeter using the 'X-API-Key' authentication header.",
+    icon: Laptop,
+    accent: "text-blue-400",
+    badgeBg: "bg-blue-950/60 border-blue-800/60 text-blue-300",
+  },
+  client_mobile: {
+    id: "client_mobile",
+    title: "Mobile App Client",
+    type: "Ingress Source",
+    port: "Port 443 / HTTPS",
+    tech: "iOS & Android Native",
+    detail:
+      "Customer storefront mobile checkout and live inventory requests hitting the perimeter at `/proxy/{apiId}/**`.",
+    icon: Smartphone,
+    accent: "text-blue-400",
+    badgeBg: "bg-blue-950/60 border-blue-800/60 text-blue-300",
+  },
+  client_b2b: {
+    id: "client_b2b",
+    title: "Automated Partner API / cURL",
+    type: "Ingress Source",
+    port: "Port 443 / HTTPS",
+    tech: "B2B REST Client / Scrapers",
+    detail:
+      "High-volume external API consumers and test scripts sending automated requests to verify perimeter velocity controls.",
+    icon: Terminal,
+    accent: "text-blue-400",
+    badgeBg: "bg-blue-950/60 border-blue-800/60 text-blue-300",
+  },
+  gateway: {
+    id: "gateway",
+    title: "API Security Gateway",
+    type: "Data Plane Core",
+    port: "Port 8080 (Ingress)",
+    tech: "Spring Cloud Gateway (Netty & Reactor)",
+    detail:
+      "Non-blocking reactive reverse proxy. Performs dynamic route resolution, SHA-256 HMAC key verification, Redis velocity checks, header sanitization, and async telemetry dispatch.",
+    icon: Shield,
+    accent: "text-emerald-400",
+    badgeBg: "bg-emerald-950/60 border-emerald-800/60 text-emerald-300",
+  },
+  backend_shopnex: {
+    id: "backend_shopnex",
+    title: "ShopNex E-Commerce API",
+    type: "Target Upstream Microservice",
+    port: "Port 8081",
+    tech: "Java 21 / Spring Boot 3.4 / PostgreSQL 16",
+    detail:
+      "Core product catalog and orders business logic. Requires ZERO security code or SDKs; fully protected by the perimeter gateway.",
+    icon: Server,
+    accent: "text-cyan-400",
+    badgeBg: "bg-cyan-950/60 border-cyan-800/60 text-cyan-300",
+  },
+  redis_limiter: {
+    id: "redis_limiter",
+    title: "Redis Rate Limiter",
+    type: "Distributed Cache",
+    port: "Port 6379",
+    tech: "Redis 7 Alpine (In-Memory Token Bucket)",
+    detail:
+      "Maintains high-speed sliding-window and token-bucket velocity counters, providing sub-millisecond throttle verdicts.",
+    icon: Zap,
+    accent: "text-purple-400",
+    badgeBg: "bg-purple-950/60 border-purple-800/60 text-purple-300",
+  },
+  control_plane: {
+    id: "control_plane",
+    title: "Control Plane & PostgreSQL",
+    type: "Management Plane",
+    port: "Port 8082 (API) & 5435 (DB)",
+    tech: "Spring Boot 3.4 / PostgreSQL 16",
+    detail:
+      "Centralized configuration and telemetry repository. Stores SHA-256 key hashes, project definitions, and privacy-safe traffic logs.",
+    icon: Database,
+    accent: "text-amber-400",
+    badgeBg: "bg-amber-950/60 border-amber-800/60 text-amber-300",
+  },
+};
 
-  // Scenarios Definition
-  const scenarios = {
-    "200_OK": {
-      title: "Standard Valid Ingress",
-      badge: "200 OK",
-      badgeColor: "border-emerald-800/60 bg-emerald-950/40 text-emerald-400",
-      description: "Authenticated request with valid 'asp_live_...' API key forwarded to target backend.",
-      steps: [
-        {
-          id: "client_send",
-          source: "client",
-          target: "gateway",
-          title: "1. Client Sends Ingress Request",
-          detail: "Client dispatches GET /proxy/api_ccbc4fa24254/api/products with 'X-API-Key: asp_live_0285...'",
-          packetStatus: "CLIENT INGRESS",
-          headers: {
-            "Host": "api.security.platform:8080",
-            "X-API-Key": "asp_live_028579c2... (Plaintext)",
-            "User-Agent": "ShopNex-Mobile/2.4.0",
-          },
-          action: "Request enters perimeter via reactive Netty event loop on port 8080.",
-          securityCheck: "Perimeter TLS & URI syntax inspection",
-          latencyMs: 1.2,
-        },
-        {
-          id: "gateway_rate",
-          source: "gateway",
-          target: "redis",
-          title: "2. Distributed Velocity Check (Redis)",
-          detail: "Gateway queries Redis token bucket on port 6379 to verify client request rate.",
-          packetStatus: "TOKEN BUCKET CHECK",
-          headers: {
-            "Rate-Limit-Key": "rate:api_ccbc4fa24254:192.168.1.105",
-            "Requested-Tokens": "1",
-            "Capacity": "100 rps",
-          },
-          action: "Atomic Redis script decrements token bucket. Remaining tokens: 99.",
-          securityCheck: "DDoS & volumetric burst protection passed",
-          latencyMs: 0.8,
-        },
-        {
-          id: "gateway_verify",
-          source: "gateway",
-          target: "gateway",
-          title: "3. Cryptographic Key Verification",
-          detail: "Gateway computes SHA-256 hash of incoming key and matches against active registrations.",
-          packetStatus: "SHA-256 KEY VERIFIED",
-          headers: {
-            "Key-Prefix": "asp_live_0285...",
-            "Computed-Hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-            "Status": "ACTIVE",
-          },
-          action: "Key hash matches registered API 'api_ccbc4fa24254'. Route resolved to target http://shopnex-demo-api:8081.",
-          securityCheck: "Zero plaintext key exposure; constant-time hash comparison",
-          latencyMs: 1.1,
-        },
-        {
-          id: "gateway_forward",
-          source: "gateway",
-          target: "backend",
-          title: "4. Header Sanitization & Forwarding",
-          detail: "Gateway strips sensitive 'X-API-Key' header, injects 'X-Request-ID', and proxies clean request.",
-          packetStatus: "FORWARDING TO TARGET",
-          headers: {
-            "X-Request-ID": "req_a0c86a991ad54831",
-            "X-Forwarded-For": "192.168.1.105",
-            "X-API-Key": "[STRIPPED BY GATEWAY]",
-          },
-          action: "Clean request hits ShopNex Catalog API on port 8081. Target requires zero security code or SDK.",
-          securityCheck: "Zero secret leakage to downstream microservices",
-          latencyMs: 18.4,
-        },
-        {
-          id: "backend_respond",
-          source: "backend",
-          target: "gateway",
-          title: "5. Upstream Returns Product Data",
-          detail: "ShopNex catalog fetches product records and returns HTTP 200 OK JSON payload.",
-          packetStatus: "200 OK RESPONSE",
-          headers: {
-            "Content-Type": "application/json",
-            "Content-Length": "1840 bytes",
-            "Status": "200 OK",
-          },
-          action: "Gateway receives 200 response and appends standard rate limit headers.",
-          securityCheck: "Fault isolation & payload response size validation",
-          latencyMs: 3.2,
-        },
-        {
-          id: "async_telemetry",
-          source: "gateway",
-          target: "control_plane",
-          title: "6. Client Response & Async Telemetry",
-          detail: "Gateway returns 200 OK to client and asynchronously pipes non-blocking telemetry to Control Plane.",
-          packetStatus: "ASYNC TELEMETRY PIPED",
-          headers: {
-            "X-Request-ID": "req_a0c86a991ad54831",
-            "X-RateLimit-Limit": "100",
-            "X-RateLimit-Remaining": "99",
-            "Telemetry-Status": "SUCCESS (Postgres 16)",
-          },
-          action: "Client receives 200 OK. Control Plane saves safe metadata (status 200, duration 24ms, no body).",
-          securityCheck: "Privacy-preserving telemetry logging; zero impact on client latency",
-          latencyMs: 0.9,
-        },
-      ],
-    },
-    "401_AUTH": {
-      title: "Missing API Key (Perimeter Defense)",
-      badge: "401 UNAUTHORIZED",
-      badgeColor: "border-amber-800/60 bg-amber-950/40 text-amber-400",
-      description: "Unauthorized request without 'X-API-Key' is blocked immediately at the gateway perimeter.",
-      steps: [
-        {
-          id: "client_send_unauth",
-          source: "client",
-          target: "gateway",
-          title: "1. Client Sends Ingress Without Key",
-          detail: "Client calls GET /proxy/api_ccbc4fa24254/api/products without the required 'X-API-Key' header.",
-          packetStatus: "CLIENT INGRESS (UNAUTHORIZED)",
-          headers: {
-            "Host": "api.security.platform:8080",
-            "X-API-Key": "[MISSING]",
-            "User-Agent": "Unknown-Scanner/1.0",
-          },
-          action: "Request arrives at Spring Cloud Gateway perimeter filter.",
-          securityCheck: "Perimeter authentication gate",
-          latencyMs: 0.9,
-        },
-        {
-          id: "gateway_block_401",
-          source: "gateway",
-          target: "client",
-          title: "2. Immediate Perimeter Rejection",
-          detail: "Gateway detects missing credential and short-circuits with standardized 401 Unauthorized.",
-          packetStatus: "BLOCKED: 401 UNAUTHORIZED",
-          headers: {
-            "Status": "401 Unauthorized",
-            "Content-Type": "application/json",
-            "Error-Code": "MISSING_API_KEY",
-          },
-          action: "Gateway drops connection to upstream. ShopNex backend is completely shielded from unauthorized traffic.",
-          securityCheck: "Zero backend resource consumption by unauthorized requests",
-          latencyMs: 1.4,
-        },
-        {
-          id: "telemetry_401",
-          source: "gateway",
-          target: "control_plane",
-          title: "3. Async Security Telemetry Logged",
-          detail: "Gateway asynchronously records security event: Potential Credential Stuffing / Perimeter Probe.",
-          packetStatus: "SECURITY EVENT RECORDED",
-          headers: {
-            "Threat-Type": "CREDENTIAL_STUFFING",
-            "Severity": "HIGH (0.80)",
-            "Client-IP": "192.168.1.105",
-          },
-          action: "Control Plane logs security event to PostgreSQL. Incident counter increments in SOC dashboard.",
-          securityCheck: "Real-time threat telemetry tracking without client latency",
-          latencyMs: 0.8,
-        },
-      ],
-    },
-    "429_RATE": {
-      title: "Velocity Overflow (Rate Throttling)",
-      badge: "429 TOO MANY REQUESTS",
-      badgeColor: "border-purple-800/60 bg-purple-950/40 text-purple-400",
-      description: "Aggressive burst traffic exhausts Redis token bucket; gateway throttles with 429 response.",
-      steps: [
-        {
-          id: "burst_ingress",
-          source: "client",
-          target: "gateway",
-          title: "1. High-Velocity Request Burst",
-          detail: "Automated script floods gateway with 150 requests/second from client IP 185.220.101.5.",
-          packetStatus: "BURST INGRESS",
-          headers: {
-            "X-API-Key": "asp_live_028579c2...",
-            "Request-Velocity": "150 req/sec",
-            "Client-IP": "185.220.101.5",
-          },
-          action: "Ingress hits Gateway Netty reactive worker pool.",
-          securityCheck: "Ingress connection metering",
-          latencyMs: 0.7,
-        },
-        {
-          id: "redis_exhausted",
-          source: "gateway",
-          target: "redis",
-          title: "2. Redis Token Bucket Exhaustion",
-          detail: "Gateway queries Redis token bucket on port 6379. Token bucket balance is 0.",
-          packetStatus: "TOKEN BUCKET EMPTY (0/100)",
-          headers: {
-            "Rate-Limit-Key": "rate:api_ccbc4fa24254:185.220.101.5",
-            "Available-Tokens": "0",
-            "Reset-TTL": "1000ms",
-          },
-          action: "Redis returns zero tokens. Rate limiter flags velocity violation.",
-          securityCheck: "Algorithmic token-bucket rate limiting enforcement",
-          latencyMs: 0.6,
-        },
-        {
-          id: "gateway_throttle",
-          source: "gateway",
-          target: "client",
-          title: "3. Gateway Returns HTTP 429",
-          detail: "Gateway immediately returns 429 Too Many Requests with retry-after metadata.",
-          packetStatus: "HTTP 429 THROTTLED",
-          headers: {
-            "Status": "429 Too Many Requests",
-            "X-RateLimit-Limit": "100",
-            "X-RateLimit-Remaining": "0",
-            "X-RateLimit-Reset": "1",
-          },
-          action: "Upstream ShopNex backend is completely insulated from volumetric flood.",
-          securityCheck: "Target microservice denial-of-service shield",
-          latencyMs: 1.1,
-        },
-        {
-          id: "telemetry_429",
-          source: "gateway",
-          target: "control_plane",
-          title: "4. Telemetry Records Rate Violation",
-          detail: "Gateway records 429 event in Control Plane and triggers RATE_LIMIT_EXCEEDED security incident.",
-          packetStatus: "RATE INCIDENT RECORDED",
-          headers: {
-            "Threat-Type": "RATE_LIMIT_EXCEEDED",
-            "Severity": "HIGH (0.85)",
-            "Client-IP": "185.220.101.5",
-          },
-          action: "Incident streams into SOC dashboard. Status Distribution donut updates Purple 429 metric.",
-          securityCheck: "Threat scoring & incident attribution",
-          latencyMs: 0.9,
-        },
-      ],
-    },
-    "403_FORBIDDEN": {
-      title: "Inactive API / SSRF Guardrail",
-      badge: "403 FORBIDDEN",
-      badgeColor: "border-rose-800/60 bg-rose-950/40 text-rose-400",
-      description: "Gateway blocks requests to deactivated APIs or attempts to pivot into private/loopback subnets.",
-      steps: [
-        {
-          id: "ssrf_ingress",
-          source: "client",
-          target: "gateway",
-          title: "1. Client Sends Ingress to Inactive API",
-          detail: "Request targets deactivated API registration or forbidden path prefix.",
-          packetStatus: "INGRESS TO INACTIVE TARGET",
-          headers: {
-            "Path": "/proxy/api_inactive_demo/internal/config",
-            "X-API-Key": "asp_live_inactive...",
-          },
-          action: "Gateway checks in-memory route cache for API active status.",
-          securityCheck: "Routing table policy lookup",
-          latencyMs: 0.8,
-        },
-        {
-          id: "gateway_block_403",
-          source: "gateway",
-          target: "client",
-          title: "2. Gateway Rejects with HTTP 403",
-          detail: "Gateway perimeter blocks request with 403 Forbidden ('API_INACTIVE' or 'PATH_FORBIDDEN').",
-          packetStatus: "HTTP 403 FORBIDDEN",
-          headers: {
-            "Status": "403 Forbidden",
-            "Error": "API_INACTIVE",
-            "Message": "Target API has been deactivated by administrator",
-          },
-          action: "Request rejected at edge; no outbound socket opened to target.",
-          securityCheck: "Edge policy enforcement",
-          latencyMs: 1.2,
-        },
-        {
-          id: "telemetry_403",
-          source: "gateway",
-          target: "control_plane",
-          title: "3. Incident Stream Ingestion",
-          detail: "Control Plane logs UNAUTHORIZED_ACCESS event to PostgreSQL table.",
-          packetStatus: "SECURITY INCIDENT LOGGED",
-          headers: {
-            "Threat-Type": "UNAUTHORIZED_ACCESS",
-            "Severity": "MEDIUM (0.60)",
-          },
-          action: "Telemetry record logged with status 403; dashboard increments security alerts.",
-          securityCheck: "Comprehensive perimeter audit trail",
-          latencyMs: 0.7,
-        },
-      ],
-    },
-  };
+// --- Custom React Flow Nodes ---
 
-  const activeScenario = scenarios[scenario];
-  const maxSteps = activeScenario.steps.length;
-  const currentStepData = activeScenario.steps[currentStep] || activeScenario.steps[0];
+// 1. Client Node (Ingress Sources)
+function ClientNode({ data, selected }) {
+  const Icon = data.icon || Laptop;
+  return (
+    <div
+      className={`group relative rounded-xl bg-zinc-950/95 border px-4 py-3 shadow-2xl transition-all duration-200 min-w-[210px] cursor-pointer ${
+        selected
+          ? "border-blue-500 shadow-blue-500/20 ring-1 ring-blue-500/50"
+          : "border-zinc-800/90 hover:border-zinc-700 hover:bg-zinc-900/60"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+          <Icon className="h-5 w-5 text-blue-400" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-xs font-semibold text-zinc-100 truncate">
+              {data.label}
+            </span>
+            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border bg-zinc-900 text-zinc-400 border-zinc-800 shrink-0">
+              {data.protocol || "HTTPS"}
+            </span>
+          </div>
+          <span className="text-[10px] font-mono text-zinc-400 block truncate mt-0.5">
+            {data.sublabel}
+          </span>
+        </div>
+      </div>
 
-  // Auto-advance animation timer
-  useEffect(() => {
-    let timer;
-    if (isPlaying) {
-      const stepDuration = Math.round(2800 / speed);
-      timer = setTimeout(() => {
-        setCurrentStep((prev) => (prev + 1) % maxSteps);
-      }, stepDuration);
-    }
-    return () => clearTimeout(timer);
-  }, [isPlaying, currentStep, speed, maxSteps]);
+      <div className="mt-2.5 pt-2 border-t border-zinc-900 flex items-center justify-between text-[9px] font-mono text-zinc-400">
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Ingress Port 443</span>
+        </span>
+        <span className="text-zinc-400">Client Source</span>
+      </div>
 
-  // Reset step when scenario changes
-  const handleScenarioChange = (newScenario) => {
-    setScenario(newScenario);
-    setCurrentStep(0);
-  };
+      {/* Outbound connection handle to Gateway */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-2.5 !h-2.5 !bg-blue-400 !border-2 !border-zinc-950 !-right-1.5"
+      />
+    </div>
+  );
+}
 
-  // Node definitions with coordinates for visual connection
-  const nodes = {
-    client: {
-      id: "client",
-      name: "API Consumer",
-      subtext: "Web App / Mobile / Curl",
-      port: "Port 443 / 80",
-      tech: "HTTP/1.1 Client",
-      color: "blue",
-      icon: Laptop,
-      description: "External clients dispatching REST requests with 'X-API-Key' header.",
-    },
-    gateway: {
-      id: "gateway",
-      name: "API Security Gateway",
-      subtext: "Reactive Reverse Proxy",
-      port: "Port 8080",
-      tech: "Spring Cloud Gateway (Netty)",
-      color: "emerald",
-      icon: Shield,
-      description: "High-throughput non-blocking perimeter gateway executing key checks, rate limiting, and header sanitization.",
-    },
-    redis: {
-      id: "redis",
-      name: "Redis Rate Limiter",
-      subtext: "Token Bucket Cache",
-      port: "Port 6379",
-      tech: "Redis 7 Alpine",
-      color: "purple",
-      icon: Zap,
-      description: "In-memory token bucket velocity limiter delivering sub-millisecond throttle decisions.",
-    },
-    backend: {
-      id: "backend",
-      name: "Target Backend (ShopNex)",
-      subtext: "Catalog Microservice",
-      port: "Port 8081",
-      tech: "Spring Boot 3.4 / Postgres",
-      color: "cyan",
-      icon: Server,
-      description: "Protected upstream business microservice requiring ZERO custom security code or SDKs.",
-    },
-    control_plane: {
-      id: "control_plane",
-      name: "Control Plane & DB",
-      subtext: "Management & Telemetry",
-      port: "Port 8082 & 5435",
-      tech: "Spring Boot / PostgreSQL 16",
-      color: "amber",
-      icon: Database,
-      description: "Centralized management plane storing SHA-256 key hashes, project configs, and privacy-safe traffic telemetry.",
-    },
-  };
+// 2. Gateway Node (Central Security Perimeter Hub)
+function GatewayNode({ data, selected }) {
+  const isBlocked = data.scenario === "UNAUTH_401";
+  const isThrottled = data.scenario === "RATE_429";
 
-  const isNodeActive = (nodeId) => {
-    return currentStepData.source === nodeId || currentStepData.target === nodeId;
-  };
+  const borderColor = isBlocked
+    ? "border-amber-500 shadow-amber-500/30"
+    : isThrottled
+    ? "border-purple-500 shadow-purple-500/30"
+    : "border-emerald-500/80 shadow-emerald-500/20";
 
-  const isNodeSource = (nodeId) => currentStepData.source === nodeId;
-  const isNodeTarget = (nodeId) => currentStepData.target === nodeId;
+  const glowColor = isBlocked
+    ? "bg-amber-500/20"
+    : isThrottled
+    ? "bg-purple-500/20"
+    : "bg-emerald-500/20";
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="relative group">
+      {/* Outer ambient glow */}
+      <div
+        className={`absolute -inset-2 rounded-2xl opacity-40 blur-lg transition-all duration-500 ${glowColor}`}
+      />
+
+      {/* Target handle from clients */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-zinc-950 !-left-1.5 z-10"
+      />
+
+      <div
+        className={`relative rounded-xl bg-zinc-950 border px-5 py-4 shadow-2xl transition-all duration-300 min-w-[270px] cursor-pointer ${borderColor} ${
+          selected ? "ring-2 ring-emerald-400/60" : ""
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3 mb-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="h-10 w-10 rounded-lg bg-zinc-900 border border-zinc-700/80 flex items-center justify-center shrink-0">
+              <Shield
+                className={`h-5 w-5 transition-colors ${
+                  isBlocked
+                    ? "text-amber-400"
+                    : isThrottled
+                    ? "text-purple-400"
+                    : "text-emerald-400"
+                }`}
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold tracking-tight text-zinc-100">
+                  API Security Gateway
+                </span>
+                <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-950/80 border border-emerald-800/60 text-emerald-300">
+                  :8080
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-zinc-400">
+                Spring Cloud Gateway (Netty)
+              </span>
+            </div>
+          </div>
+
+          <span className="flex h-2.5 w-2.5 relative shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+        </div>
+
+        {/* Security Pipeline Stages */}
+        <div className="grid grid-cols-3 gap-1.5 py-2 px-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 text-[9px] font-mono text-center">
+          <div className="text-zinc-300 font-medium">
+            <span className="block text-[8px] text-zinc-400">AUTH</span>
+            SHA-256
+          </div>
+          <div className="text-zinc-300 font-medium border-x border-zinc-800/80">
+            <span className="block text-[8px] text-zinc-400">VELOCITY</span>
+            Token Bucket
+          </div>
+          <div className="text-zinc-300 font-medium">
+            <span className="block text-[8px] text-zinc-400">SAFETY</span>
+            Sanitizer
+          </div>
+        </div>
+
+        {/* Status Verdict Strip */}
+        <div className="mt-2.5 flex items-center justify-between text-[10px] font-mono">
+          <span className="text-zinc-400">Verdict:</span>
+          {isBlocked ? (
+            <span className="text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">
+              401 UNAUTHORIZED
+            </span>
+          ) : isThrottled ? (
+            <span className="text-purple-400 font-bold bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/60">
+              429 RATE LIMITED
+            </span>
+          ) : (
+            <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60">
+              200 PROXIED OK
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Outbound connection handle to targets/infrastructure */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-zinc-950 !-right-1.5 z-10"
+      />
+    </div>
+  );
+}
+
+// 3. Service Node (Upstream Backends & Platform Infrastructure)
+function ServiceNode({ data, selected }) {
+  const Icon = data.icon || Server;
+  const isCyan = data.themeColor === "cyan";
+  const isPurple = data.themeColor === "purple";
+
+  const accentColor = isCyan
+    ? "text-cyan-400"
+    : isPurple
+    ? "text-purple-400"
+    : "text-amber-400";
+  const portBadgeBg = isCyan
+    ? "bg-cyan-950/60 border-cyan-800/60 text-cyan-300"
+    : isPurple
+    ? "bg-purple-950/60 border-purple-800/60 text-purple-300"
+    : "bg-amber-950/60 border-amber-800/60 text-amber-300";
+  const hoverBorder = isCyan
+    ? "hover:border-cyan-500/60"
+    : isPurple
+    ? "hover:border-purple-500/60"
+    : "hover:border-amber-500/60";
+  const dotColor = isCyan
+    ? "bg-cyan-400"
+    : isPurple
+    ? "bg-purple-400"
+    : "bg-amber-400";
+
+  return (
+    <div className="relative group">
+      {/* Target handle from Gateway */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-2.5 !h-2.5 !bg-zinc-400 !border-2 !border-zinc-950 !-left-1.5"
+      />
+
+      <div
+        className={`rounded-xl bg-zinc-950/95 border px-4 py-3 shadow-2xl transition-all duration-200 min-w-[230px] cursor-pointer ${
+          selected
+            ? "border-zinc-400 ring-1 ring-zinc-400/50"
+            : `border-zinc-800/90 ${hoverBorder} hover:bg-zinc-900/60`
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Icon className={`h-5 w-5 ${accentColor}`} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-semibold text-zinc-100 truncate">
+                {data.label}
+              </span>
+              <span
+                className={`text-[9px] font-mono px-1.5 py-0.2 rounded border shrink-0 ${portBadgeBg}`}
+              >
+                {data.port}
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-zinc-400 block truncate mt-0.5">
+              {data.sublabel}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-2.5 pt-2 border-t border-zinc-900 flex items-center justify-between text-[9px] font-mono text-zinc-400">
+          <span className="flex items-center gap-1.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
+            <span>{data.role}</span>
+          </span>
+          <span className="text-zinc-300 font-mono">{data.tag}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Register React Flow Node Types (memoized outside component)
+const NODE_TYPES = {
+  clientNode: ClientNode,
+  gatewayNode: GatewayNode,
+  serviceNode: ServiceNode,
+};
+
+// Initial Node Positions
+const INITIAL_NODES = [
+  // Column 1: Ingress Clients (X = 40)
+  {
+    id: "client_web",
+    type: "clientNode",
+    position: { x: 40, y: 30 },
+    data: {
+      label: "Web App Client",
+      sublabel: "React 19 SPA / Browser",
+      protocol: "HTTPS",
+      icon: Laptop,
+    },
+  },
+  {
+    id: "client_mobile",
+    type: "clientNode",
+    position: { x: 40, y: 185 },
+    data: {
+      label: "Mobile App Client",
+      sublabel: "iOS & Android Storefront",
+      protocol: "MOBILE",
+      icon: Smartphone,
+    },
+  },
+  {
+    id: "client_b2b",
+    type: "clientNode",
+    position: { x: 40, y: 340 },
+    data: {
+      label: "Partner API / cURL",
+      sublabel: "Automated B2B / Test CLI",
+      protocol: "cURL",
+      icon: Terminal,
+    },
+  },
+
+  // Column 2: Central Security Gateway (X = 400)
+  {
+    id: "gateway",
+    type: "gatewayNode",
+    position: { x: 390, y: 155 },
+    data: {
+      scenario: "ALL_ACTIVE",
+    },
+  },
+
+  // Column 3: Upstream Targets & Platform Infrastructure (X = 810)
+  {
+    id: "backend_shopnex",
+    type: "serviceNode",
+    position: { x: 810, y: 30 },
+    data: {
+      label: "ShopNex API",
+      sublabel: "Java 21 / Spring Boot 3.4",
+      port: ":8081",
+      role: "Protected Upstream",
+      tag: "Zero-SDK",
+      themeColor: "cyan",
+      icon: Server,
+    },
+  },
+  {
+    id: "redis_limiter",
+    type: "serviceNode",
+    position: { x: 810, y: 185 },
+    data: {
+      label: "Redis Limiter",
+      sublabel: "Redis 7 In-Memory Cache",
+      port: ":6379",
+      role: "Velocity Counters",
+      tag: "Token Bucket",
+      themeColor: "purple",
+      icon: Zap,
+    },
+  },
+  {
+    id: "control_plane",
+    type: "serviceNode",
+    position: { x: 810, y: 340 },
+    data: {
+      label: "Control Plane & DB",
+      sublabel: "Spring Boot / Postgres 16",
+      port: ":8082/:5435",
+      role: "Telemetry & Key Store",
+      tag: "Audit Log",
+      themeColor: "amber",
+      icon: Database,
+    },
+  },
+];
+
+export default function ArchitectureView({ onNavigate }) {
+  // Scenario state: "ALL_ACTIVE" | "VALID_200" | "UNAUTH_401" | "RATE_429"
+  const [scenario, setScenario] = useState("ALL_ACTIVE");
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [selectedNode, setSelectedNode] = useState(null);
+
+  // Initialize React Flow nodes & edges
+  const [nodes, setNodes, onNodesChange] = useNodesState(INITIAL_NODES);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  // Generate dynamic scenario edges
+  const generateScenarioEdges = useCallback(
+    (currentScenario, active) => {
+      const animated = active;
+
+      switch (currentScenario) {
+        case "VALID_200":
+          return [
+            {
+              id: "e-web-gw",
+              source: "client_web",
+              target: "gateway",
+              type: "smoothstep",
+              animated,
+              label: "X-API-Key (Valid)",
+              style: { stroke: "#10b981", strokeWidth: 2.5 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#10b981" },
+              labelStyle: { fill: "#34d399", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#065f46" },
+            },
+            {
+              id: "e-gw-shopnex",
+              source: "gateway",
+              target: "backend_shopnex",
+              type: "smoothstep",
+              animated,
+              label: "200 OK Proxied",
+              style: { stroke: "#10b981", strokeWidth: 2.5 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#10b981" },
+              labelStyle: { fill: "#34d399", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#065f46" },
+            },
+            {
+              id: "e-gw-redis",
+              source: "gateway",
+              target: "redis_limiter",
+              type: "smoothstep",
+              animated,
+              label: "Token Approved",
+              style: { stroke: "#a855f7", strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#a855f7" },
+              labelStyle: { fill: "#c084fc", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#581c87" },
+            },
+            {
+              id: "e-gw-ctrl",
+              source: "gateway",
+              target: "control_plane",
+              type: "smoothstep",
+              animated,
+              label: "Access Logged",
+              style: { stroke: "#f59e0b", strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#f59e0b" },
+              labelStyle: { fill: "#fbbf24", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#78350f" },
+            },
+          ];
+
+        case "UNAUTH_401":
+          return [
+            {
+              id: "e-web-gw",
+              source: "client_web",
+              target: "gateway",
+              type: "smoothstep",
+              animated,
+              label: "Missing Key (Blocked)",
+              style: { stroke: "#f59e0b", strokeWidth: 2.5, strokeDasharray: "5 5" },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#f59e0b" },
+              labelStyle: { fill: "#fbbf24", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#78350f" },
+            },
+            // Target microservice receives ZERO traffic - blocked at perimeter!
+            {
+              id: "e-gw-ctrl",
+              source: "gateway",
+              target: "control_plane",
+              type: "smoothstep",
+              animated,
+              label: "401 Audit Recorded",
+              style: { stroke: "#f59e0b", strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#f59e0b" },
+              labelStyle: { fill: "#fbbf24", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#78350f" },
+            },
+          ];
+
+        case "RATE_429":
+          return [
+            {
+              id: "e-b2b-gw",
+              source: "client_b2b",
+              target: "gateway",
+              type: "smoothstep",
+              animated,
+              label: "Burst Velocity (100 req/s)",
+              style: { stroke: "#a855f7", strokeWidth: 2.5 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#a855f7" },
+              labelStyle: { fill: "#c084fc", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#581c87" },
+            },
+            {
+              id: "e-gw-redis",
+              source: "gateway",
+              target: "redis_limiter",
+              type: "smoothstep",
+              animated,
+              label: "Bucket Exhausted (429)",
+              style: { stroke: "#a855f7", strokeWidth: 2.5 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#a855f7" },
+              labelStyle: { fill: "#c084fc", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#581c87" },
+            },
+            // Target microservice receives ZERO traffic - protected from denial of service!
+            {
+              id: "e-gw-ctrl",
+              source: "gateway",
+              target: "control_plane",
+              type: "smoothstep",
+              animated,
+              label: "429 Rate Incident",
+              style: { stroke: "#f59e0b", strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#f59e0b" },
+              labelStyle: { fill: "#fbbf24", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#78350f" },
+            },
+          ];
+
+        default: // "ALL_ACTIVE"
+          return [
+            {
+              id: "e-web-gw",
+              source: "client_web",
+              target: "gateway",
+              type: "smoothstep",
+              animated,
+              label: "HTTPS :443",
+              style: { stroke: "#3b82f6", strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
+              labelStyle: { fill: "#93c5fd", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#1e3a8a" },
+            },
+            {
+              id: "e-mob-gw",
+              source: "client_mobile",
+              target: "gateway",
+              type: "smoothstep",
+              animated,
+              label: "Mobile /checkout",
+              style: { stroke: "#3b82f6", strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
+              labelStyle: { fill: "#93c5fd", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#1e3a8a" },
+            },
+            {
+              id: "e-b2b-gw",
+              source: "client_b2b",
+              target: "gateway",
+              type: "smoothstep",
+              animated,
+              label: "Partner cURL",
+              style: { stroke: "#3b82f6", strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
+              labelStyle: { fill: "#93c5fd", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#1e3a8a" },
+            },
+            {
+              id: "e-gw-shopnex",
+              source: "gateway",
+              target: "backend_shopnex",
+              type: "smoothstep",
+              animated,
+              label: "Clean Ingress :8081",
+              style: { stroke: "#06b6d4", strokeWidth: 2.5 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#06b6d4" },
+              labelStyle: { fill: "#67e8f9", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#164e63" },
+            },
+            {
+              id: "e-gw-redis",
+              source: "gateway",
+              target: "redis_limiter",
+              type: "smoothstep",
+              animated,
+              label: "Token Check <1ms",
+              style: { stroke: "#a855f7", strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#a855f7" },
+              labelStyle: { fill: "#c084fc", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#581c87" },
+            },
+            {
+              id: "e-gw-ctrl",
+              source: "gateway",
+              target: "control_plane",
+              type: "smoothstep",
+              animated,
+              label: "Async Telemetry",
+              style: { stroke: "#f59e0b", strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#f59e0b" },
+              labelStyle: { fill: "#fbbf24", fontSize: 10, fontFamily: "monospace" },
+              labelBgStyle: { fill: "#09090b", fillOpacity: 0.9, stroke: "#78350f" },
+            },
+          ];
+      }
+    },
+    []
+  );
+
+  // Synchronize edges and gateway node data when scenario or playback changes
+  useEffect(() => {
+    setEdges(generateScenarioEdges(scenario, isPlaying));
+
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === "gateway") {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              scenario,
+            },
+          };
+        }
+        return node;
+      })
+    );
+  }, [scenario, isPlaying, generateScenarioEdges, setEdges, setNodes]);
+
+  // Reset node positions to initial layout
+  const handleReset = () => {
+    setScenario("ALL_ACTIVE");
+    setSelectedNode(null);
+    setIsPlaying(true);
+    setNodes(INITIAL_NODES);
+  };
+
+  // Scenario theme colors & details
+  const scenarioTheme = useMemo(() => {
+    switch (scenario) {
+      case "UNAUTH_401":
+        return {
+          badge: "401 UNAUTHORIZED",
+          desc: "Missing API Key: Perimeter Gate blocks request immediately; target backends receive zero traffic.",
+          textColor: "text-amber-400",
+          borderColor: "border-amber-800/60",
+          bgColor: "bg-amber-950/40",
+        };
+      case "RATE_429":
+        return {
+          badge: "429 RATE LIMITED",
+          desc: "Velocity Overflow: Redis Token Bucket exhausts; Gateway throttles without impacting target microservice.",
+          textColor: "text-purple-400",
+          borderColor: "border-purple-800/60",
+          bgColor: "bg-purple-950/40",
+        };
+      case "VALID_200":
+        return {
+          badge: "200 OK (ALLOWED)",
+          desc: "Authenticated Ingress: SHA-256 verified, headers sanitized, request proxied to ShopNex backend.",
+          textColor: "text-emerald-400",
+          borderColor: "border-emerald-800/60",
+          bgColor: "bg-emerald-950/40",
+        };
+      default:
+        return {
+          badge: "LIVE DATA PLANE",
+          desc: "Continuous high-throughput reverse proxy routing with Redis rate limiting and asynchronous telemetry.",
+          textColor: "text-emerald-400",
+          borderColor: "border-emerald-800/60",
+          bgColor: "bg-emerald-950/40",
+        };
+    }
+  }, [scenario]);
+
+  const activeInspector = selectedNode || NODES_METADATA.gateway;
+  const ActiveIcon = activeInspector.icon || Shield;
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 select-none">
       {/* Top Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-zinc-800/80 pb-5">
         <div>
@@ -420,535 +762,303 @@ export default function ArchitectureView({ serviceStatus = {}, onNavigate }) {
               <Workflow className="h-4 w-4 text-emerald-400" />
             </div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-100">
-              System Architecture & Request Lifecycle
+              System Architecture & Request Flow Visualizer
             </h1>
             <Badge
               variant="outline"
               className="text-[10px] font-mono border-emerald-800/60 bg-emerald-950/40 text-emerald-400"
             >
-              DUAL-PLANE ARCHITECTURE
+              REACT FLOW INTERACTIVE
             </Badge>
           </div>
           <p className="text-xs text-zinc-400 max-w-3xl">
-            Interactive visual simulation of ingress request routing, cryptographic SHA-256 verification, distributed Redis token-bucket rate limiting, and asynchronous non-blocking telemetry.
+            Fully interactive node-based architecture canvas powered by React Flow. Drag nodes, inspect live network boundaries, and simulate perimeter edge defense scenarios in real time.
           </p>
         </div>
 
-        {/* Live Service Health Indicators */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/60 border border-zinc-800 text-[11px] font-mono text-zinc-300">
+        {/* Live Ports Strip */}
+        <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-300">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>Gateway :8080</span>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/60 border border-zinc-800 text-[11px] font-mono text-zinc-300">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span>Control Plane :8082</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-300">
+            <span className="h-2 w-2 rounded-full bg-cyan-400" />
+            <span>ShopNex :8081</span>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/60 border border-zinc-800 text-[11px] font-mono text-zinc-300">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span>Target Backend :8081</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-300">
+            <span className="h-2 w-2 rounded-full bg-purple-400" />
+            <span>Redis :6379</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-300">
+            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            <span>Control :8082</span>
           </div>
         </div>
       </div>
 
       {/* Control Bar: Scenario Select & Playback */}
       <Card className="border-zinc-800/80 bg-zinc-950 text-white shadow-none">
-        <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Scenario Selector Pills */}
+        <CardContent className="p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Scenario Tabs */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-medium text-zinc-400 mr-1 flex items-center gap-1.5">
-              <Activity className="h-3.5 w-3.5 text-zinc-400" /> Scenario:
+              <Sliders className="h-3.5 w-3.5 text-zinc-400" /> Scenario:
             </span>
-            {Object.entries(scenarios).map(([key, s]) => {
-              const isActive = scenario === key;
+
+            {[
+              { id: "ALL_ACTIVE", label: "Live Data Plane", tag: "NORMAL" },
+              { id: "VALID_200", label: "Valid API Key", tag: "200 OK" },
+              { id: "UNAUTH_401", label: "Missing API Key", tag: "401 UNAUTH" },
+              { id: "RATE_429", label: "Burst Velocity", tag: "429 THROTTLE" },
+            ].map((sc) => {
+              const active = scenario === sc.id;
               return (
                 <button
-                  key={key}
-                  onClick={() => handleScenarioChange(key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 border ${
-                    isActive
-                      ? "bg-zinc-100 text-zinc-900 border-zinc-100 shadow-md"
-                      : "bg-zinc-900/80 text-zinc-400 border-zinc-800 hover:text-zinc-200 hover:bg-zinc-800/80"
+                  key={sc.id}
+                  onClick={() => setScenario(sc.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-2 border ${
+                    active
+                      ? "bg-zinc-100 text-zinc-950 border-zinc-100 font-semibold shadow-md"
+                      : "bg-zinc-900/80 text-zinc-400 border-zinc-800 hover:text-zinc-200 hover:bg-zinc-800"
                   }`}
                 >
-                  <span>{s.title}</span>
+                  <span>{sc.label}</span>
                   <span
-                    className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${
-                      isActive
-                        ? "bg-zinc-200/90 text-zinc-900 border-zinc-300"
-                        : s.badgeColor
+                    className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${
+                      active
+                        ? "bg-zinc-900 text-zinc-200 border-zinc-700"
+                        : "bg-zinc-950 text-zinc-400 border-zinc-800"
                     }`}
                   >
-                    {s.badge}
+                    {sc.tag}
                   </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Animation Playback Controls */}
-          <div className="flex items-center gap-2 border-t md:border-t-0 border-zinc-800/80 pt-3 md:pt-0">
-            {/* Play/Pause */}
+          {/* Animation Controls */}
+          <div className="flex items-center gap-2 border-t md:border-t-0 border-zinc-800/80 pt-2.5 md:pt-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsPlaying(!isPlaying)}
-              className="h-8 border-zinc-800 bg-zinc-900/70 hover:bg-zinc-800 text-zinc-200 cursor-pointer text-xs flex items-center gap-1.5"
+              className="h-8 border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 cursor-pointer text-xs flex items-center gap-1.5"
             >
-              {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 text-emerald-400" />}
-              <span>{isPlaying ? "Pause" : "Play"}</span>
+              {isPlaying ? (
+                <Pause className="h-3.5 w-3.5 text-zinc-400" />
+              ) : (
+                <Play className="h-3.5 w-3.5 text-emerald-400" />
+              )}
+              <span>{isPlaying ? "Pause Flow" : "Resume Flow"}</span>
             </Button>
 
-            {/* Next Step */}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setIsPlaying(false);
-                setCurrentStep((prev) => (prev + 1) % maxSteps);
-              }}
-              className="h-8 border-zinc-800 bg-zinc-900/70 hover:bg-zinc-800 text-zinc-200 cursor-pointer text-xs flex items-center gap-1.5"
-            >
-              <SkipForward className="h-3.5 w-3.5" />
-              <span>Step</span>
-            </Button>
-
-            {/* Reset */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setCurrentStep(0);
-                setIsPlaying(true);
-              }}
-              className="h-8 border-zinc-800 bg-zinc-900/70 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 cursor-pointer text-xs"
-              title="Reset Animation"
+              onClick={handleReset}
+              className="h-8 border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 cursor-pointer text-xs flex items-center gap-1.5"
+              title="Reset Layout & Animation"
             >
               <RotateCcw className="h-3.5 w-3.5" />
+              <span>Reset</span>
             </Button>
-
-            {/* Speed Selector */}
-            <div className="flex items-center gap-1 bg-zinc-900/80 p-0.5 rounded-md border border-zinc-800 text-xs font-mono ml-2">
-              {[0.5, 1, 2].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setSpeed(s)}
-                  className={`px-2 py-0.5 rounded cursor-pointer transition-colors ${
-                    speed === s ? "bg-zinc-800 text-zinc-100 font-bold" : "text-zinc-400 hover:text-zinc-200"
-                  }`}
-                >
-                  {s}x
-                </button>
-              ))}
-            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Main Interactive Diagram Canvas */}
+      {/* Main React Flow Canvas */}
       <Card className="border-zinc-800/80 bg-zinc-950 text-white shadow-none overflow-hidden relative">
-        <CardHeader className="pb-2 border-b border-zinc-800/80 flex flex-row items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
-                ACTIVE STEP {currentStep + 1} OF {maxSteps}
-              </span>
-              <span className="text-zinc-600">•</span>
-              <span className="text-xs font-medium text-zinc-200">{currentStepData.title}</span>
-            </div>
-            <CardDescription className="text-xs text-zinc-400 mt-0.5">
-              {currentStepData.detail}
-            </CardDescription>
+        <CardHeader className="pb-3 border-b border-zinc-800/80 flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-xs font-mono font-bold tracking-wider uppercase ${scenarioTheme.textColor}`}
+            >
+              {scenarioTheme.badge}
+            </span>
+            <span className="text-zinc-600">•</span>
+            <span className="text-xs text-zinc-300 font-medium">{scenarioTheme.desc}</span>
           </div>
 
-          <Badge className={`text-xs font-mono px-2.5 py-0.5 border ${activeScenario.badgeColor}`}>
-            {currentStepData.packetStatus}
-          </Badge>
+          <div className="text-[11px] font-mono text-zinc-400 hidden sm:flex items-center gap-2">
+            <span>Drag nodes to re-arrange</span>
+            <span className="text-zinc-600">|</span>
+            <span>
+              Ingress Path: <code className="text-emerald-400">/proxy/&#123;apiId&#125;/**</code>
+            </span>
+          </div>
         </CardHeader>
 
-        <CardContent className="p-6">
-          {/* Dual-Plane Architecture Grid Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-            {/* Plane 1: Client Ingress */}
-            <div className="flex flex-col items-center justify-center p-5 rounded-xl border border-zinc-800/80 bg-zinc-900/30 space-y-3 relative group hover:border-zinc-700 transition-colors">
-              <div className="w-full flex items-center justify-between text-[11px] font-mono text-zinc-400 border-b border-zinc-800/60 pb-2">
-                <span>INGRESS SOURCE</span>
-                <span className="text-blue-400 font-semibold">CLIENT APP</span>
-              </div>
+        <CardContent className="p-0 relative">
+          <div className="w-full h-[540px] bg-black relative">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              nodeTypes={NODE_TYPES}
+              onNodeClick={(_event, node) => {
+                if (NODES_METADATA[node.id]) {
+                  setSelectedNode(NODES_METADATA[node.id]);
+                }
+              }}
+              onPaneClick={() => setSelectedNode(null)}
+              fitView
+              fitViewOptions={{ padding: 0.2 }}
+              minZoom={0.5}
+              maxZoom={1.5}
+              proOptions={{ hideAttribution: true }}
+              colorMode="dark"
+            >
+              <Background color="#27272a" gap={20} size={1} />
+              <Controls
+                showInteractive={false}
+                className="!bg-zinc-900 !border-zinc-800 !text-zinc-300 !rounded-lg overflow-hidden [&>button]:!bg-zinc-900 [&>button]:!border-zinc-800 [&>button]:!text-zinc-300 hover:[&>button]:!bg-zinc-800"
+              />
+              <MiniMap
+                nodeColor={(n) => {
+                  if (n.id === "gateway") return "#10b981";
+                  if (n.id.startsWith("client")) return "#3b82f6";
+                  if (n.id === "backend_shopnex") return "#06b6d4";
+                  if (n.id === "redis_limiter") return "#a855f7";
+                  return "#f59e0b";
+                }}
+                maskColor="rgba(0, 0, 0, 0.75)"
+                className="!bg-zinc-950 !border !border-zinc-800/80 !rounded-lg overflow-hidden"
+              />
 
-              <div
-                onClick={() => setSelectedNode(nodes.client)}
-                className={`w-20 h-20 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer ${
-                  isNodeActive("client")
-                    ? "bg-blue-950/80 border-2 border-blue-500 shadow-lg shadow-blue-500/20 scale-105"
-                    : "bg-zinc-900 border border-zinc-800 hover:border-zinc-700"
-                }`}
-              >
-                <Laptop className={`h-8 w-8 ${isNodeActive("client") ? "text-blue-400" : "text-zinc-400"}`} />
-                <span className="text-[10px] font-mono text-zinc-300 mt-1">Client App</span>
-              </div>
-
-              <div className="text-center">
-                <p className="text-xs font-semibold text-zinc-200">Public Consumer</p>
-                <p className="text-[10px] font-mono text-zinc-500">Port 443 / HTTPS</p>
-              </div>
-
-              {/* Animated Floating Packet Indicator */}
-              {isNodeSource("client") && (
-                <div className="absolute -top-3 px-2 py-0.5 rounded-full bg-blue-600 text-white font-mono text-[10px] font-bold shadow-lg animate-bounce">
-                  Sending X-API-Key ➔
+              {/* Dynamic Overlay Panel */}
+              <Panel position="top-right" className="m-3">
+                <div className="px-3 py-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800/80 text-[10px] font-mono text-zinc-300 backdrop-blur-md flex items-center gap-2 shadow-lg">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Interactive Graph Active</span>
                 </div>
-              )}
-            </div>
-
-            {/* Plane 2: Core Perimeter Security Gateway & Redis (Center Stage) */}
-            <div className="flex flex-col items-center justify-center p-5 rounded-xl border border-emerald-900/50 bg-emerald-950/10 space-y-4 relative group hover:border-emerald-700/60 transition-colors">
-              <div className="w-full flex items-center justify-between text-[11px] font-mono text-emerald-400 border-b border-emerald-900/40 pb-2">
-                <span className="flex items-center gap-1.5 font-bold">
-                  <Shield className="h-3.5 w-3.5" /> DATA PLANE
-                </span>
-                <span>SUB-MS INGRESS</span>
-              </div>
-
-              {/* Gateway Core Node */}
-              <div
-                onClick={() => setSelectedNode(nodes.gateway)}
-                className={`w-24 h-24 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer relative ${
-                  isNodeActive("gateway")
-                    ? "bg-emerald-950/80 border-2 border-emerald-400 shadow-xl shadow-emerald-500/25 scale-105"
-                    : "bg-zinc-900 border border-emerald-900/60 hover:border-emerald-700"
-                }`}
-              >
-                <Shield className={`h-10 w-10 ${isNodeActive("gateway") ? "text-emerald-400" : "text-zinc-400"}`} />
-                <span className="text-[10px] font-mono font-bold text-zinc-100 mt-1">API GATEWAY</span>
-                <span className="text-[9px] font-mono text-emerald-400">:8080</span>
-
-                {isNodeActive("gateway") && (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                  </span>
-                )}
-              </div>
-
-              {/* Redis Rate Limiter Node (Attached to Gateway) */}
-              <div
-                onClick={() => setSelectedNode(nodes.redis)}
-                className={`w-full p-2.5 rounded-lg border flex items-center justify-between transition-all cursor-pointer ${
-                  isNodeActive("redis")
-                    ? "bg-purple-950/60 border-purple-500 shadow-md shadow-purple-500/20"
-                    : "bg-zinc-900/60 border-zinc-800 hover:border-zinc-700"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Zap className={`h-4 w-4 ${isNodeActive("redis") ? "text-purple-400" : "text-zinc-400"}`} />
-                  <div>
-                    <p className="text-[11px] font-semibold text-zinc-200">Redis 7 Token Bucket</p>
-                    <p className="text-[9px] font-mono text-zinc-500">Port 6379 • Atomic Rate Limiting</p>
-                  </div>
-                </div>
-                <Badge
-                  variant="outline"
-                  className={`text-[9px] font-mono py-0 ${
-                    isNodeActive("redis") ? "border-purple-600 text-purple-300" : "border-zinc-800 text-zinc-500"
-                  }`}
-                >
-                  {scenario === "429_RATE" ? "0/100 RPS" : "99/100 RPS"}
-                </Badge>
-              </div>
-
-              <div className="text-center text-[10px] font-mono text-zinc-400">
-                Spring Cloud Gateway • Project Reactor (Netty)
-              </div>
-            </div>
-
-            {/* Plane 3: Upstream Target Microservice & Control Plane */}
-            <div className="flex flex-col justify-between gap-4">
-              {/* Upstream Backend Node */}
-              <div
-                onClick={() => setSelectedNode(nodes.backend)}
-                className={`p-4 rounded-xl border flex flex-col justify-between transition-all cursor-pointer ${
-                  isNodeActive("backend")
-                    ? "bg-cyan-950/60 border-cyan-400 shadow-lg shadow-cyan-500/20"
-                    : "bg-zinc-900/40 border-zinc-800/80 hover:border-zinc-700"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase">
-                    PROTECTED TARGET
-                  </span>
-                  <Badge variant="outline" className="text-[9px] font-mono border-cyan-800/60 text-cyan-400">
-                    ZERO SDK
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                    <Server className={`h-5 w-5 ${isNodeActive("backend") ? "text-cyan-400" : "text-zinc-400"}`} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-100">ShopNex E-Commerce API</h4>
-                    <p className="text-[10px] font-mono text-zinc-500">Port 8081 • Products & Orders</p>
-                  </div>
-                </div>
-                <p className="text-[10px] text-zinc-400 mt-2 border-t border-zinc-800/60 pt-2">
-                  Receives clean forwarded HTTP requests with stripped credentials and validated request identity.
-                </p>
-              </div>
-
-              {/* Control Plane & Telemetry Node */}
-              <div
-                onClick={() => setSelectedNode(nodes.control_plane)}
-                className={`p-4 rounded-xl border flex flex-col justify-between transition-all cursor-pointer ${
-                  isNodeActive("control_plane")
-                    ? "bg-amber-950/60 border-amber-400 shadow-lg shadow-amber-500/20"
-                    : "bg-zinc-900/40 border-zinc-800/80 hover:border-zinc-700"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-mono text-amber-400 font-bold uppercase">
-                    CONTROL PLANE
-                  </span>
-                  <Badge variant="outline" className="text-[9px] font-mono border-amber-800/60 text-amber-400">
-                    POSTGRESQL 16
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                    <Database className={`h-5 w-5 ${isNodeActive("control_plane") ? "text-amber-400" : "text-zinc-400"}`} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-100">Control Plane & Storage</h4>
-                    <p className="text-[10px] font-mono text-zinc-500">Port 8082 & 5435 • Telemetry</p>
-                  </div>
-                </div>
-                <p className="text-[10px] text-zinc-400 mt-2 border-t border-zinc-800/60 pt-2">
-                  Asynchronously ingests safe metadata and security events without slowing down the active data plane.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Interactive Progress Stepper */}
-          <div className="mt-8 pt-6 border-t border-zinc-800/80">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono text-zinc-400 font-semibold uppercase">
-                Step-by-Step Pipeline Verification
-              </span>
-              <span className="text-xs font-mono text-zinc-500">
-                Step {currentStep + 1} of {maxSteps}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-              {activeScenario.steps.map((st, idx) => {
-                const isPast = idx < currentStep;
-                const isCurrent = idx === currentStep;
-                return (
-                  <button
-                    key={st.id}
-                    onClick={() => {
-                      setIsPlaying(false);
-                      setCurrentStep(idx);
-                    }}
-                    className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
-                      isCurrent
-                        ? "border-emerald-500 bg-emerald-950/40 text-emerald-300 ring-1 ring-emerald-500/50"
-                        : isPast
-                        ? "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:bg-zinc-800/60"
-                        : "border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-zinc-400"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-mono font-bold">0{idx + 1}</span>
-                      {isPast ? (
-                        <Check className="h-3 w-3 text-emerald-400" />
-                      ) : isCurrent ? (
-                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                      ) : null}
-                    </div>
-                    <p className="text-[11px] font-medium leading-tight truncate">{st.title.split(". ")[1] || st.title}</p>
-                  </button>
-                );
-              })}
-            </div>
+              </Panel>
+            </ReactFlow>
           </div>
         </CardContent>
       </Card>
 
-      {/* Real-Time Packet Inspector & Security Invariants */}
+      {/* Interactive Node Details Drawer / Inspector */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Packet Inspector (Headers & Payload State) */}
+        {/* Node Inspector Card */}
         <Card className="lg:col-span-2 border-zinc-800/80 bg-zinc-950 text-white shadow-none">
           <CardHeader className="pb-3 border-b border-zinc-800/80 flex flex-row items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Terminal className="h-4 w-4 text-emerald-400" />
-              <CardTitle className="text-sm font-semibold text-zinc-100">
-                Live Packet Inspector & Headers
-              </CardTitle>
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                <ActiveIcon className={`h-4 w-4 ${activeInspector.accent}`} />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-semibold text-zinc-100">
+                  {activeInspector.title}
+                </CardTitle>
+                <CardDescription className="text-[11px] font-mono text-zinc-400">
+                  {activeInspector.tech}
+                </CardDescription>
+              </div>
             </div>
-            <Badge variant="outline" className="text-[10px] font-mono border-zinc-800 text-zinc-400">
-              Stage: {currentStepData.source.toUpperCase()} ➔ {currentStepData.target.toUpperCase()}
+            <Badge
+              variant="outline"
+              className={`text-[10px] font-mono border ${activeInspector.badgeBg}`}
+            >
+              {activeInspector.port}
             </Badge>
           </CardHeader>
-          <CardContent className="pt-4 space-y-4">
-            <div className="rounded-lg bg-zinc-900/80 border border-zinc-800/80 p-3 font-mono text-xs">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-2 text-zinc-400 text-[11px]">
-                <span>HTTP HEADER FIELD</span>
-                <span>VALUE AT INSPECTION STAGE</span>
-              </div>
-              <div className="space-y-1.5">
-                {Object.entries(currentStepData.headers).map(([key, val]) => (
-                  <div key={key} className="flex items-center justify-between text-[11px]">
-                    <span className="text-zinc-400">{key}:</span>
-                    <span
-                      className={`font-semibold ${
-                        val.includes("STRIPPED")
-                          ? "text-rose-400 line-through"
-                          : val.includes("Plaintext")
-                          ? "text-blue-400"
-                          : val.includes("200 OK") || val.includes("ACTIVE")
-                          ? "text-emerald-400"
-                          : val.includes("401") || val.includes("429")
-                          ? "text-purple-400"
-                          : "text-zinc-200"
-                      }`}
-                    >
-                      {val}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <CardContent className="pt-4 space-y-4">
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              {activeInspector.detail}
+            </p>
+
+            {/* Invariants Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
               <div className="p-3 rounded-lg border border-zinc-800/70 bg-zinc-900/40">
-                <p className="text-[10px] font-mono text-zinc-500 uppercase">Edge Action Executed</p>
-                <p className="text-xs text-zinc-200 font-medium mt-1">{currentStepData.action}</p>
+                <p className="text-[10px] font-mono text-zinc-400 uppercase">Architecture Plane</p>
+                <p className="text-xs text-emerald-400 font-semibold mt-1">
+                  {activeInspector.type}
+                </p>
               </div>
+
               <div className="p-3 rounded-lg border border-zinc-800/70 bg-zinc-900/40">
-                <p className="text-[10px] font-mono text-zinc-500 uppercase">Security Invariant</p>
-                <p className="text-xs text-emerald-400 font-medium mt-1 flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                  <span>{currentStepData.securityCheck}</span>
+                <p className="text-[10px] font-mono text-zinc-400 uppercase">Framework / Stack</p>
+                <p className="text-xs text-zinc-200 font-medium mt-1 font-mono truncate">
+                  {activeInspector.tech}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg border border-zinc-800/70 bg-zinc-900/40">
+                <p className="text-[10px] font-mono text-zinc-400 uppercase">Perimeter SLA</p>
+                <p className="text-xs text-emerald-400 font-semibold mt-1">
+                  &lt; 2.5 ms Overhead
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Selected Component Quick-Specs */}
+        {/* Live Scenario Quick Action */}
         <Card className="border-zinc-800/80 bg-zinc-950 text-white shadow-none flex flex-col justify-between">
           <CardHeader className="pb-3 border-b border-zinc-800/80">
             <CardTitle className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-              <Info className="h-4 w-4 text-zinc-400" />
-              <span>Architectural Specifications</span>
+              <Sparkles className="h-4 w-4 text-emerald-400" />
+              <span>Simulate Edge Defense</span>
             </CardTitle>
             <CardDescription className="text-xs text-zinc-400">
-              Click any node in the diagram above to inspect details.
+              Trigger instant perimeter scenarios in the React Flow graph.
             </CardDescription>
           </CardHeader>
 
           <CardContent className="pt-4 flex-1 flex flex-col justify-between space-y-4">
-            {selectedNode ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                    <selectedNode.icon className="h-4 w-4 text-emerald-400" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-zinc-100">{selectedNode.name}</h4>
-                    <p className="text-[10px] font-mono text-zinc-400">{selectedNode.tech}</p>
-                  </div>
-                </div>
-                <p className="text-xs text-zinc-300 leading-relaxed">{selectedNode.description}</p>
-                <div className="pt-2 border-t border-zinc-800/70 space-y-1 font-mono text-[11px]">
-                  <div className="flex justify-between text-zinc-400">
-                    <span>Listening Port:</span>
-                    <span className="text-zinc-200 font-bold">{selectedNode.port}</span>
-                  </div>
-                  <div className="flex justify-between text-zinc-400">
-                    <span>Runtime Layer:</span>
-                    <span className="text-zinc-200">{selectedNode.subtext}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                    <Shield className="h-4 w-4 text-emerald-400" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-zinc-100">API Gateway Perimeter</h4>
-                    <p className="text-[10px] font-mono text-zinc-400">Spring Cloud Gateway / Netty</p>
-                  </div>
-                </div>
-                <p className="text-xs text-zinc-300 leading-relaxed">
-                  The API Security Gateway acts as a high-performance reverse proxy on port 8080. It terminates perimeter traffic, executes constant-time SHA-256 key hashing, queries Redis for velocity limits, strips credentials, and forwards clean requests to target backends.
-                </p>
-                <div className="pt-2 border-t border-zinc-800/70 space-y-1 font-mono text-[11px]">
-                  <div className="flex justify-between text-zinc-400">
-                    <span>Ingress Path:</span>
-                    <span className="text-emerald-400 font-bold">/proxy/&#123;apiId&#125;/**</span>
-                  </div>
-                  <div className="flex justify-between text-zinc-400">
-                    <span>Forwarding Overhead:</span>
-                    <span className="text-zinc-200">&lt; 3.0 ms avg</span>
-                  </div>
-                </div>
-              </div>
-            )}
+            <div className="space-y-2">
+              <button
+                onClick={() => setScenario("VALID_200")}
+                className={`w-full p-2.5 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between text-xs ${
+                  scenario === "VALID_200"
+                    ? "bg-emerald-950/40 border-emerald-500 text-emerald-300 font-semibold"
+                    : "bg-zinc-900/50 border-zinc-800 text-zinc-300 hover:bg-zinc-800/70"
+                }`}
+              >
+                <span>🟢 Valid Key (Forward to ShopNex)</span>
+                <span className="text-[10px] font-mono text-emerald-400">200 OK</span>
+              </button>
 
-            <div className="pt-3 border-t border-zinc-800/80">
+              <button
+                onClick={() => setScenario("UNAUTH_401")}
+                className={`w-full p-2.5 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between text-xs ${
+                  scenario === "UNAUTH_401"
+                    ? "bg-amber-950/40 border-amber-500 text-amber-300 font-semibold"
+                    : "bg-zinc-900/50 border-zinc-800 text-zinc-300 hover:bg-zinc-800/70"
+                }`}
+              >
+                <span>🟡 Missing Key (Perimeter Block)</span>
+                <span className="text-[10px] font-mono text-amber-400">401 Auth</span>
+              </button>
+
+              <button
+                onClick={() => setScenario("RATE_429")}
+                className={`w-full p-2.5 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between text-xs ${
+                  scenario === "RATE_429"
+                    ? "bg-purple-950/40 border-purple-500 text-purple-300 font-semibold"
+                    : "bg-zinc-900/50 border-zinc-800 text-zinc-300 hover:bg-zinc-800/70"
+                }`}
+              >
+                <span>🟣 Velocity Burst (Redis Limiter)</span>
+                <span className="text-[10px] font-mono text-purple-400">429 Rate</span>
+              </button>
+            </div>
+
+            <div className="pt-2 border-t border-zinc-800/80">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onNavigate && onNavigate("traffic")}
                 className="w-full h-8 text-xs font-mono border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-200 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>View Live Ingress Telemetry</span>
+                <span>View Traffic Telemetry</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Key Architectural Principles (3 Columns) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-        <Card className="border-zinc-800/80 bg-zinc-950 text-white shadow-none">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 font-mono uppercase">
-              <Layers className="h-4 w-4" />
-              <span>1. Dual-Plane Separation</span>
-            </div>
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              The <strong>Data Plane</strong> handles client ingress in sub-milliseconds on Netty. The <strong>Control Plane</strong> handles key provisioning and analytics asynchronously on PostgreSQL without contending with client traffic.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-zinc-800/80 bg-zinc-950 text-white shadow-none">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-cyan-400 font-mono uppercase">
-              <Server className="h-4 w-4" />
-              <span>2. Zero-SDK Integration</span>
-            </div>
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              Target upstream microservices (like ShopNex) require <strong>zero code modifications</strong> or proprietary SDKs. The gateway acts as an external perimeter shield, handling all authentication and throttling.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-zinc-800/80 bg-zinc-950 text-white shadow-none">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-purple-400 font-mono uppercase">
-              <KeyRound className="h-4 w-4" />
-              <span>3. Cryptographic Storage</span>
-            </div>
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              API keys are generated using 256-bit <code>SecureRandom</code> PRNG. Secret tokens are displayed strictly once; the platform stores only one-way <strong>SHA-256 hashes</strong>, ensuring zero plaintext exposure.
-            </p>
           </CardContent>
         </Card>
       </div>
