@@ -10,6 +10,7 @@ import java.util.Set;
 
 import com.platform.gateway.dto.GatewayApiConfig;
 import com.platform.gateway.service.ControlPlaneConfigClient;
+import com.platform.gateway.service.JwtService;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -35,6 +36,9 @@ class DynamicGatewayProxyTest {
 
     @Autowired
     private ControlPlaneConfigClient configClient;
+
+    @Autowired
+    private JwtService jwtService;
 
     private static final String VALID_KEY = "asp_live_test_1234567890abcdef1234567890";
     private static final String API_ID = "api_test_proxy";
@@ -191,6 +195,135 @@ class DynamicGatewayProxyTest {
                 .expectStatus().isOk()
                 .expectHeader().valueEquals("Access-Control-Allow-Origin", "http://localhost:8085")
                 .expectHeader().exists("Access-Control-Allow-Methods");
+    }
+
+    @Test
+    @DisplayName("Routes request with valid Bearer JWT token successfully and sets rate limit headers")
+    void routesWithValidJwtTokenSuccessfully() throws InterruptedException {
+        String token = jwtService.generateToken("test-user", List.of("ROLE_DEVELOPER"));
+        mockUpstream.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("{\"jwtAuth\":true}"));
+
+        webTestClient.get()
+                .uri("/proxy/" + API_ID + "/orders")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().exists("X-Request-ID")
+                .expectHeader().valueEquals("X-RateLimit-Limit", "100")
+                .expectHeader().exists("X-RateLimit-Remaining")
+                .expectBody()
+                .jsonPath("$.jwtAuth").isEqualTo(true);
+
+        RecordedRequest recorded = mockUpstream.takeRequest();
+        assertThat(recorded.getHeader("X-Request-ID")).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Rejects expired JWT token with 401 Unauthorized")
+    void rejectsExpiredJwtToken() {
+        String expiredToken = jwtService.generateToken("test-user", List.of("ROLE_USER"), java.util.Map.of(), -5000L);
+
+        webTestClient.get()
+                .uri("/proxy/" + API_ID + "/orders")
+                .header("Authorization", "Bearer " + expiredToken)
+                .exchange()
+                .expectStatus().isUnauthorized()
+                .expectBody()
+                .jsonPath("$.error").isEqualTo("EXPIRED_JWT");
+    }
+
+    @Test
+    @DisplayName("Rejects tampered JWT token with 401 Unauthorized")
+    void rejectsTamperedJwtToken() {
+        String validToken = jwtService.generateToken("test-user", List.of("ROLE_USER"));
+        String[] parts = validToken.split("\\.");
+        // Modify the signature
+        String tamperedToken = parts[0] + "." + parts[1] + ".tamperedSignature123456789";
+
+        webTestClient.get()
+                .uri("/proxy/" + API_ID + "/orders")
+                .header("Authorization", "Bearer " + tamperedToken)
+                .exchange()
+                .expectStatus().isUnauthorized()
+                .expectBody()
+                .jsonPath("$.error").isEqualTo("TAMPERED_JWT");
+    }
+
+    @Test
+    @DisplayName("Rejects oversized request body exceeding limit with 413 Payload Too Large")
+    void rejectsOversizedRequestBody() {
+        // config has 2048 bytes max
+        String largeBody = "X".repeat(3000);
+
+        webTestClient.post()
+                .uri("/proxy/" + API_ID + "/orders")
+                .header("X-API-Key", VALID_KEY)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(largeBody)
+                .exchange()
+                .expectStatus().isEqualTo(413)
+                .expectBody()
+                .jsonPath("$.error").isEqualTo("PAYLOAD_TOO_LARGE");
+    }
+
+    @Test
+    @DisplayName("Propagates client X-Request-ID and returns it in response")
+    void propagatesCustomRequestId() throws InterruptedException {
+        String customReqId = "req_custom_tracer_999";
+        mockUpstream.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("{\"ok\":true}"));
+
+        webTestClient.get()
+                .uri("/proxy/" + API_ID + "/orders")
+                .header("X-API-Key", VALID_KEY)
+                .header("X-Request-ID", customReqId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Request-ID", customReqId);
+
+        RecordedRequest recorded = mockUpstream.takeRequest();
+        assertThat(recorded.getHeader("X-Request-ID")).isEqualTo(customReqId);
+    }
+
+    @Test
+    @DisplayName("Enforces rate limiting burst capacity and returns 429 Too Many Requests")
+    void enforcesRateLimitingBurst() {
+        GatewayApiConfig lowLimitConfig = new GatewayApiConfig(
+                "api_rate_test",
+                mockUpstream.url("/").toString(),
+                "ACTIVE",
+                Set.of("GET"),
+                "/",
+                3000,
+                1, // 1 RPS
+                1048576L,
+                List.of(hashKey(VALID_KEY))
+        );
+        configClient.setCacheOverride("api_rate_test", lowLimitConfig);
+
+        // Exhaust tokens rapidly
+        boolean got429 = false;
+        for (int i = 0; i < 15; i++) {
+            mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true}"));
+            var exchangeResult = webTestClient.get()
+                    .uri("/proxy/api_rate_test/resource")
+                    .header("X-API-Key", VALID_KEY)
+                    .exchange()
+                    .returnResult(String.class);
+
+            if (exchangeResult.getStatus().value() == 429) {
+                got429 = true;
+                assertThat(exchangeResult.getResponseHeaders().getFirst("Retry-After")).isEqualTo("1");
+                assertThat(exchangeResult.getResponseHeaders().getFirst("X-RateLimit-Limit")).isEqualTo("1");
+                break;
+            }
+        }
+        assertThat(got429).isTrue();
     }
 
     private static String hashKey(String rawKey) {

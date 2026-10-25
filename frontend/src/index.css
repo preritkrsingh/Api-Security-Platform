@@ -2,6 +2,27 @@
 
 @layer base {
   :root {
+    --background: #000000;
+    --foreground: #ffffff;
+    --card: #09090b;
+    --card-foreground: #ffffff;
+    --popover: #09090b;
+    --popover-foreground: #ffffff;
+    --primary: #ffffff;
+    --primary-foreground: #09090b;
+    --secondary: #18181b;
+    --secondary-foreground: #ffffff;
+    --muted: #1c1c22;
+    --muted-foreground: #a1a1aa;
+    --accent: #22222a;
+    --accent-foreground: #ffffff;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #27272f;
+    --input: #27272f;
+    --ring: #71717a;
+    --radius: 0.5rem;
+
     --bg-canvas: #000000;
     --bg-surface: #09090b;
     --bg-surface-elevated: #111114;
@@ -82,6 +103,48 @@
   animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-page-enter {
+  animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes staggerItem {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-stagger-1 {
+  animation: staggerItem 0.38s cubic-bezier(0.16, 1, 0.3, 1) 0.04s both;
+}
+
+.animate-stagger-2 {
+  animation: staggerItem 0.40s cubic-bezier(0.16, 1, 0.3, 1) 0.09s both;
+}
+
+.animate-stagger-3 {
+  animation: staggerItem 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
+}
+
+.animate-stagger-4 {
+  animation: staggerItem 0.44s cubic-bezier(0.16, 1, 0.3, 1) 0.19s both;
+}
+
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }
@@ -108,3 +171,142 @@
 .btn-click:active {
   transform: scale(0.97);
 }
+
+/* -------------------------------------------------------------
+ * Base UI Stacked Toast Deck (shadcn/ui Base Toast standard)
+ * Configured for bottom-right position and upward expansion on hover
+ * ------------------------------------------------------------- */
+.base-toast-viewport {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  top: auto;
+  left: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  outline: none;
+  pointer-events: none;
+  width: 380px;
+  max-width: calc(100vw - 3rem);
+}
+
+.base-toast-viewport:has(.base-toast-root) {
+  pointer-events: auto;
+}
+
+.base-toast-viewport:focus-visible {
+  outline: none;
+}
+
+.base-toast-root {
+  --gap: 0.75rem;
+  --peek: 0.75rem;
+  --scale: calc(max(0, 1 - (var(--toast-index, 0) * 0.05)));
+  --shrink: calc(1 - var(--scale));
+  --height: var(--toast-frontmost-height, var(--toast-height, auto));
+  --offset-y: calc(
+    var(--toast-offset-y, 0px) * -1 + (var(--toast-index, 0) * var(--gap) * -1) +
+      var(--toast-swipe-movement-y, 0px)
+  );
+
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  top: auto;
+  left: auto;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #18181b;
+  color: #f4f4f5;
+  border: 1px solid #27272a;
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  user-select: none;
+  pointer-events: auto;
+  transform-origin: bottom center;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s ease,
+              height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: calc(1000 - var(--toast-index, 0));
+  height: var(--height);
+  transform: translateX(var(--toast-swipe-movement-x, 0px))
+             translateY(
+               calc(
+                 var(--toast-swipe-movement-y, 0px) - (var(--toast-index, 0) * var(--peek)) -
+                   (var(--shrink) * var(--height))
+               )
+             )
+             scale(var(--scale));
+}
+
+/* Hover bridge: ensures mouseenter/mouseleave does not break when moving across stacked items */
+.base-toast-root::before {
+  content: '';
+  position: absolute;
+  top: -16px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  pointer-events: auto;
+}
+
+.base-toast-root::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  bottom: 100%;
+  left: 0;
+  height: calc(var(--gap) + 8px);
+}
+
+.base-toast-root[data-expanded] {
+  transform: translateX(var(--toast-swipe-movement-x, 0px)) translateY(var(--offset-y, 0px));
+  height: var(--toast-height);
+}
+
+.base-toast-root[data-limited] {
+  opacity: 0;
+}
+
+.base-toast-root[data-ending-style],
+.base-toast-root[data-starting-style] {
+  opacity: 0;
+  transform: scale(0.92) translateY(120%);
+}
+
+.base-toast-root[data-ending-style][data-swipe-direction='up'] {
+  transform: translateY(calc(var(--toast-swipe-movement-y, 0px) - 120%));
+}
+
+.base-toast-root[data-ending-style][data-swipe-direction='down'] {
+  transform: translateY(calc(var(--toast-swipe-movement-y, 0px) + 120%));
+}
+
+.base-toast-root[data-ending-style][data-swipe-direction='left'] {
+  transform: translateX(calc(var(--toast-swipe-movement-x, 0px) - 120%)) translateY(var(--offset-y, 0px));
+}
+
+.base-toast-root[data-ending-style][data-swipe-direction='right'] {
+  transform: translateX(calc(var(--toast-swipe-movement-x, 0px) + 120%)) translateY(var(--offset-y, 0px));
+}
+
+.base-toast-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  transition: opacity 0.2s ease;
+}
+
+.base-toast-content[data-behind] {
+  opacity: 0;
+}
+
+.base-toast-content[data-expanded] {
+  opacity: 1;
+}
+

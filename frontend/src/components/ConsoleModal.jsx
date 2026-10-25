@@ -1,16 +1,23 @@
 import React, { useState } from 'react';
 import {
-  Play,
   Terminal,
   Send,
-  X,
   Copy,
-  Clock,
-  Shield,
-  AlertCircle,
-  CheckCircle2
+  Clock
 } from 'lucide-react';
 import { platformApi } from '../services/api';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 
 export default function ConsoleModal({
   api,
@@ -26,7 +33,7 @@ export default function ConsoleModal({
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState(null);
 
-  if (!isOpen || !api) return null;
+  if (!api) return null;
 
   const handleSend = async () => {
     setIsLoading(true);
@@ -88,30 +95,24 @@ export default function ConsoleModal({
   }`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in text-neutral-100">
-      <div className="relative w-full max-w-3xl rounded-2xl border border-neutral-800/90 bg-[#09090b] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-scale-in">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-[#27272f] bg-[#09090b]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-neutral-800/80 flex items-center justify-between bg-[#0c0c0e]">
+        <DialogHeader className="px-6 py-4 border-b border-[#202026] bg-[#0c0c0e]">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 text-emerald-400">
+            <div className="p-2 rounded-lg bg-[#18181b] border border-[#27272f] text-emerald-400">
               <Terminal className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white tracking-wide">
+              <DialogTitle className="text-sm font-semibold text-white tracking-wide">
                 Gateway Traffic Probe & Console
-              </h3>
-              <p className="text-xs text-neutral-400 font-mono mt-0.5">
-                Route: <span className="text-neutral-200">/proxy/{api.id}/**</span>
-              </p>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-zinc-400 font-mono mt-0.5">
+                Route: <span className="text-zinc-200">/proxy/{api.id}/**</span>
+              </DialogDescription>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-neutral-400 hover:text-white p-1.5 rounded-lg hover:bg-neutral-800/60 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        </DialogHeader>
 
         {/* Content */}
         <div className="p-6 flex-1 overflow-y-auto space-y-4 text-xs">
@@ -120,7 +121,7 @@ export default function ConsoleModal({
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value)}
-              className="bg-[#0c0c0e] border border-neutral-800 rounded-xl px-3.5 py-2 text-white font-mono font-semibold text-xs focus:outline-none focus:border-neutral-600 cursor-pointer"
+              className="bg-[#0c0c0e] border border-[#27272f] rounded-lg px-3 py-2 text-white font-mono font-semibold text-xs focus:outline-none focus:border-indigo-500 cursor-pointer h-9"
             >
               <option value="GET">GET</option>
               <option value="POST">POST</option>
@@ -129,57 +130,60 @@ export default function ConsoleModal({
               <option value="PATCH">PATCH</option>
             </select>
 
-            <div className="flex-1 flex items-center bg-[#0c0c0e] border border-neutral-800 rounded-xl px-3.5 py-2">
-              <span className="text-neutral-500 select-none text-xs font-mono">/proxy/{api.id}</span>
+            <div className="flex-1 flex items-center bg-[#0c0c0e] border border-[#27272f] rounded-lg px-3 py-1 h-9">
+              <span className="text-zinc-500 select-none text-xs font-mono">/proxy/{api.id}</span>
               <input
                 type="text"
                 value={subpath}
                 onChange={(e) => setSubpath(e.target.value)}
                 placeholder="/api/health"
-                className="flex-1 bg-transparent border-0 text-white font-mono focus:outline-none pl-1 text-xs placeholder-neutral-600"
+                className="flex-1 bg-transparent border-0 text-white font-mono focus:outline-none pl-1 text-xs placeholder-zinc-600"
               />
             </div>
 
-            <button
+            <Button
               onClick={handleSend}
               disabled={isLoading}
-              className="px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black font-semibold transition-all flex items-center gap-1.5 shrink-0 disabled:opacity-50 text-xs shadow-sm"
+              size="sm"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold flex items-center gap-1.5 h-9 px-4 shrink-0 shadow-sm"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{isLoading ? 'PROBING...' : 'DISPATCH'}</span>
-            </button>
+            </Button>
           </div>
 
           {/* Key & Headers */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-neutral-400 text-[11px] font-medium mb-1.5">
-                API Key (<span className="font-mono text-neutral-300">X-API-Key</span> Header)
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label className="text-zinc-400 text-[11px] font-medium">
+                API Key (<span className="font-mono text-zinc-300">X-API-Key</span> Header)
+              </Label>
+              <Input
                 type="text"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="asp_live_... (omit to test 401 Unauthorized)"
-                className="w-full bg-[#0c0c0e] border border-neutral-800 rounded-xl px-3.5 py-2 text-neutral-200 font-mono placeholder-neutral-600 focus:outline-none focus:border-neutral-600 text-xs"
+                className="font-mono text-xs h-9 bg-[#0c0c0e] border-[#27272f]"
               />
             </div>
             <div className="flex items-end">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => copyText(curlCommand, 'cURL command copied!')}
-                className="w-full py-2 px-3.5 rounded-xl border border-neutral-800 bg-[#0c0c0e] hover:bg-neutral-850 hover:text-white text-neutral-300 flex items-center justify-center gap-2 transition-colors text-xs font-medium"
+                className="w-full h-9 border-[#27272f] bg-[#0c0c0e] hover:bg-[#18181b] text-zinc-300 flex items-center justify-center gap-2"
               >
-                <Copy className="w-3.5 h-3.5 text-neutral-400" />
+                <Copy className="w-3.5 h-3.5 text-zinc-400" />
                 <span>Copy Equivalent cURL</span>
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Body Payload (for non-GET) */}
           {(method === 'POST' || method === 'PUT' || method === 'PATCH') && (
             <div>
-              <label className="block text-neutral-400 text-[11px] font-medium mb-1.5">
+              <label className="block text-zinc-400 text-[11px] font-medium mb-1.5">
                 Request JSON Payload
               </label>
               <textarea
@@ -187,30 +191,31 @@ export default function ConsoleModal({
                 value={bodyPayload}
                 onChange={(e) => setBodyPayload(e.target.value)}
                 placeholder='{"testKey": "testValue"}'
-                className="w-full bg-[#0c0c0e] border border-neutral-800 rounded-xl p-3 text-neutral-200 font-mono placeholder-neutral-600 focus:outline-none focus:border-neutral-600 text-xs"
+                className="w-full bg-[#0c0c0e] border border-[#27272f] rounded-lg p-3 text-zinc-200 font-mono placeholder-zinc-600 focus:outline-none focus:border-indigo-500 text-xs"
               />
             </div>
           )}
 
           {/* Response Inspector */}
           {response && (
-            <div className="rounded-xl border border-neutral-800 bg-[#0c0c0e] p-4 space-y-3 animate-fade-in">
-              <div className="flex items-center justify-between border-b border-neutral-800/80 pb-3">
+            <div className="rounded-xl border border-[#202026] bg-[#0c0c0e] p-4 space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-[#202026] pb-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-neutral-400 text-xs">Status:</span>
-                  <span
-                    className={`px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold ${
+                  <span className="text-zinc-400 text-xs">Status:</span>
+                  <Badge
+                    variant={
                       response.status === 200
-                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        ? 'success'
                         : response.status === 401
-                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                        : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                    }`}
+                        ? 'warning'
+                        : 'destructive'
+                    }
+                    className="font-mono text-[11px]"
                   >
                     {response.status || 'ERROR'}
-                  </span>
+                  </Badge>
                 </div>
-                <div className="flex items-center gap-1.5 text-neutral-500 text-xs font-mono">
+                <div className="flex items-center gap-1.5 text-zinc-500 text-xs font-mono">
                   <Clock className="w-3.5 h-3.5" />
                   <span>{response.durationMs}ms</span>
                 </div>
@@ -218,10 +223,10 @@ export default function ConsoleModal({
 
               {/* Response Body */}
               <div>
-                <span className="text-[11px] font-medium text-neutral-400 block mb-1.5">
+                <span className="text-[11px] font-medium text-zinc-400 block mb-1.5">
                   Response Body Payload
                 </span>
-                <pre className="p-3.5 rounded-xl bg-black border border-neutral-800 font-mono text-xs text-neutral-300 overflow-x-auto max-h-52 leading-relaxed">
+                <pre className="p-3.5 rounded-lg bg-black border border-[#202026] font-mono text-xs text-zinc-300 overflow-x-auto max-h-52 leading-relaxed">
                   {typeof response.body === 'object'
                     ? JSON.stringify(response.body, null, 2)
                     : String(response.body)}
@@ -232,15 +237,17 @@ export default function ConsoleModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-neutral-800/80 bg-[#0c0c0e] flex justify-end">
-          <button
+        <DialogFooter className="px-6 py-3.5 border-t border-[#202026] bg-[#0c0c0e]">
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 hover:text-white text-xs font-medium transition-colors"
+            className="text-xs border-[#27272f] hover:bg-[#18181b]"
           >
             Close Console
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

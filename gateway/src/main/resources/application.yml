@@ -4,6 +4,12 @@ server:
 spring:
   application:
     name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: ${REDIS_TIMEOUT_MS:2000}
   cloud:
     gateway:
       httpclient:
@@ -19,6 +25,13 @@ spring:
           predicates:
             - Path=/api/**
 
+platform:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:veyrion_dev_jwt_secret_signing_key_32_characters_minimum}
+    rate-limiter:
+      prefer-redis: ${GATEWAY_PREFER_REDIS:true}
+
 control-plane:
   url: ${CONTROL_PLANE_URL:http://localhost:8082}
   cache-ttl-ms: ${GATEWAY_CONFIG_CACHE_TTL_MS:5000}
@@ -31,3 +44,6 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    redis:
+      enabled: ${MANAGEMENT_HEALTH_REDIS_ENABLED:false}

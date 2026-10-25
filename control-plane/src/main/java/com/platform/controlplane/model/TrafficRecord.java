@@ -17,6 +17,9 @@ public class TrafficRecord {
     @Column(name = "id", length = 64, nullable = false, updatable = false)
     private String id;
 
+    @Column(name = "request_id", length = 64)
+    private String requestId;
+
     @Column(name = "project_id", length = 64)
     private String projectId;
 
@@ -55,14 +58,20 @@ public class TrafficRecord {
 
     public TrafficRecord(String apiId, String httpMethod, String path, String clientIp,
                          Integer statusCode, Long durationMs, Long requestSize, Long responseSize, String status) {
-        this(apiId, null, httpMethod, path, clientIp, statusCode, durationMs, requestSize, responseSize, status);
+        this(apiId, null, null, httpMethod, path, clientIp, statusCode, durationMs, requestSize, responseSize, status);
     }
 
     public TrafficRecord(String apiId, String projectId, String httpMethod, String path, String clientIp,
                          Integer statusCode, Long durationMs, Long requestSize, Long responseSize, String status) {
+        this(apiId, projectId, null, httpMethod, path, clientIp, statusCode, durationMs, requestSize, responseSize, status);
+    }
+
+    public TrafficRecord(String apiId, String projectId, String requestId, String httpMethod, String path, String clientIp,
+                         Integer statusCode, Long durationMs, Long requestSize, Long responseSize, String status) {
         this.id = "trf_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         this.apiId = apiId;
         this.projectId = projectId;
+        this.requestId = requestId;
         this.timestamp = Instant.now();
         this.httpMethod = httpMethod;
         this.path = path;
@@ -92,6 +101,14 @@ public class TrafficRecord {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getRequestId() {
+        return requestId;
+    }
+
+    public void setRequestId(String requestId) {
+        this.requestId = requestId;
     }
 
     public String getProjectId() {

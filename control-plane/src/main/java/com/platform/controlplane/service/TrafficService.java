@@ -65,6 +65,7 @@ public class TrafficService {
         TrafficRecord record = new TrafficRecord(
                 request.apiId(),
                 resolvedProjectId,
+                request.requestId(),
                 request.httpMethod(),
                 request.path(),
                 request.clientIp(),
@@ -112,6 +113,30 @@ public class TrafficService {
                     Severity.MEDIUM,
                     0.60,
                     "Gateway blocked request: API inactive or path prefix forbidden."
+            );
+        } else if (request.statusCode() == 405) {
+            securityEventService.recordEvent(
+                    resolvedProjectId,
+                    request.apiId(),
+                    request.clientIp(),
+                    request.path(),
+                    request.httpMethod(),
+                    ThreatType.ENDPOINT_FUZZING,
+                    Severity.MEDIUM,
+                    0.65,
+                    "Gateway rejected unpermitted HTTP method '" + request.httpMethod() + "'."
+            );
+        } else if (request.statusCode() == 413) {
+            securityEventService.recordEvent(
+                    resolvedProjectId,
+                    request.apiId(),
+                    request.clientIp(),
+                    request.path(),
+                    request.httpMethod(),
+                    ThreatType.ANOMALOUS_PAYLOAD_SIZE,
+                    Severity.HIGH,
+                    0.75,
+                    "Gateway rejected oversized request payload exceeding configured size bounds."
             );
         }
 
@@ -225,6 +250,7 @@ public class TrafficService {
                 r.getId(),
                 r.getApiId(),
                 r.getProjectId(),
+                r.getRequestId(),
                 r.getTimestamp(),
                 r.getHttpMethod(),
                 r.getPath(),

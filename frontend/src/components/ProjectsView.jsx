@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   Layers,
   Plus,
@@ -7,14 +6,35 @@ import {
   Trash2,
   Box,
   Calendar,
-  CheckCircle2,
   AlertCircle,
-  ExternalLink,
-  X,
-  Check,
-  Globe
+  Check
 } from 'lucide-react';
 import Pagination from './Pagination';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel
+} from '@/components/ui/alert-dialog';
 
 export default function ProjectsView({
   projects = [],
@@ -105,69 +125,69 @@ export default function ProjectsView({
   const paginatedProjects = projects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const envOptions = [
-    { id: 'DEVELOPMENT', label: 'Dev', full: 'Development', dot: 'bg-emerald-400' },
-    { id: 'TESTING', label: 'Staging', full: 'Testing / Staging', dot: 'bg-amber-400' },
-    { id: 'PRODUCTION', label: 'Prod', full: 'Production', dot: 'bg-rose-400' }
+    { id: 'DEVELOPMENT', label: 'Development', dot: 'bg-emerald-400' },
+    { id: 'TESTING', label: 'Staging', dot: 'bg-amber-400' },
+    { id: 'PRODUCTION', label: 'Production', dot: 'bg-rose-400' }
   ];
 
   return (
-    <div className="space-y-5 animate-fade-in text-white font-sans">
+    <div className="space-y-4 animate-page-enter text-white font-sans">
       {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-3 border-b border-neutral-800/80">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-3 border-b border-zinc-800/80">
         <div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-base font-semibold text-white tracking-tight">
-              Projects
+            <h2 className="text-base font-semibold text-zinc-100 tracking-tight">
+              Projects & Workspaces
             </h2>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-neutral-900 text-neutral-300 border border-neutral-800">
-              {projects.length} {projects.length === 1 ? 'project' : 'projects'}
-            </span>
+            <Badge variant="outline" className="text-[10px] font-mono border-zinc-800 bg-zinc-900 text-zinc-400 py-0 px-1.5">
+              {projects.length} WORKSPACES
+            </Badge>
           </div>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Manage environments and isolate API gateway configurations.
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Isolated tenant boundaries with discrete reverse-proxy configurations and rate limits
           </p>
         </div>
 
-        <button
+        <Button
           onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-semibold shadow-sm transition-all"
+          size="sm"
+          className="bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs h-7 px-3 flex items-center gap-1.5 shadow-none transition-colors cursor-pointer"
         >
-          <Plus className="w-3.5 h-3.5 text-black" />
+          <Plus className="w-3.5 h-3.5" />
           <span>New Project</span>
-        </button>
+        </Button>
       </div>
 
       {/* Projects Grid */}
       {projects.length === 0 ? (
-        <div className="py-16 text-center border border-dashed border-neutral-800 rounded-2xl bg-[#08080a] p-8 space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center mx-auto text-neutral-400">
-            <Layers className="w-5 h-5" />
-          </div>
-          <h3 className="text-sm font-semibold text-white">No Projects Yet</h3>
-          <p className="text-xs text-neutral-400 max-w-sm mx-auto">
-            Create your first workspace to onboard and protect API routes.
-          </p>
-          <button
-            onClick={openCreateModal}
-            className="px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-colors"
-          >
-            Create Project
-          </button>
-        </div>
+        <Card className="border border-zinc-800/80 bg-zinc-950 shadow-none">
+          <CardContent className="py-16 text-center p-8 space-y-3">
+            <Layers className="w-8 h-8 text-zinc-600 mx-auto" />
+            <h3 className="text-xs font-semibold text-zinc-200 uppercase tracking-wider font-mono">No Projects Configured</h3>
+            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+              Create your first project workspace to register endpoints and enforce perimeter security.
+            </p>
+            <Button
+              onClick={openCreateModal}
+              size="sm"
+              className="bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-medium h-7 px-3 shadow-none cursor-pointer"
+            >
+              Create Project
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* New Project Card (Positioned first in grid for intuitive access) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {/* New Project Card */}
             <button
               type="button"
               onClick={openCreateModal}
-              className="rounded-2xl border border-dashed border-neutral-800 hover:border-neutral-600 bg-neutral-900/20 hover:bg-neutral-900/40 p-5 flex flex-col items-center justify-center text-center transition-all min-h-[220px] group cursor-pointer"
+              className="rounded-lg border border-dashed border-zinc-800 hover:border-zinc-700 bg-zinc-950/60 hover:bg-zinc-900/40 p-5 flex flex-col items-center justify-center text-center transition-colors min-h-[200px] cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-800 group-hover:border-neutral-700 group-hover:bg-neutral-800 flex items-center justify-center text-neutral-400 group-hover:text-white transition-all mb-3 shadow-sm">
-                <Plus className="w-5 h-5" />
-              </div>
-              <span className="text-sm font-semibold text-white tracking-tight">New Project</span>
-              <span className="text-xs text-neutral-500 mt-1">Create an isolated workspace</span>
+              <Plus className="w-6 h-6 text-zinc-500 mb-2" />
+              <span className="text-xs font-medium text-zinc-200">New Project</span>
+              <span className="text-[11px] text-zinc-500 mt-0.5">Create an isolated workspace</span>
             </button>
 
             {/* Existing Project Cards */}
@@ -176,98 +196,142 @@ export default function ProjectsView({
               const projectApis = apis.filter((a) => a.projectId === proj.id);
 
               return (
-                <div
+                <Card
                   key={proj.id}
-                  className={`rounded-2xl border p-5 transition-all relative flex flex-col justify-between ${
+                  className={`transition-colors relative flex flex-col justify-between shadow-none border ${
                     isSelected
-                      ? 'border-neutral-700 bg-[#0e0e12] shadow-lg ring-1 ring-neutral-700'
-                      : 'border-neutral-800/80 bg-[#08080a] hover:border-neutral-700/80 hover:bg-[#0c0c0f]'
+                      ? 'border-zinc-700 bg-zinc-950'
+                      : 'border-zinc-800/80 bg-zinc-950 hover:border-zinc-700'
                   }`}
                 >
-                  <div>
+                  <CardHeader className="p-4 pb-2">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1 min-w-0">
+                      <div className="space-y-0.5 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-semibold text-white truncate max-w-[180px]">
+                          <CardTitle className="text-xs font-semibold text-zinc-100 truncate max-w-[180px]">
                             {proj.name}
-                          </h3>
+                          </CardTitle>
                           {isSelected && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-neutral-800 text-neutral-200 border border-neutral-700">
+                            <Badge variant="outline" className="text-[10px] bg-zinc-900 text-zinc-200 border-zinc-800 font-mono py-0 px-1.5">
                               Active
-                            </span>
+                            </Badge>
                           )}
                         </div>
-                        <span className="text-[11px] font-mono text-neutral-500 block truncate">
+                        <span className="text-[10px] font-mono text-zinc-500 block truncate">
                           {proj.id}
                         </span>
                       </div>
 
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider shrink-0 flex items-center gap-1.5 ${
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] uppercase font-mono px-1.5 py-0 ${
                           proj.environment === 'PRODUCTION'
-                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                            ? 'border-rose-800/50 bg-rose-950/40 text-rose-400'
                             : proj.environment === 'TESTING'
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            ? 'border-amber-800/50 bg-amber-950/40 text-amber-400'
+                            : 'border-emerald-800/50 bg-emerald-950/40 text-emerald-400'
                         }`}
                       >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            proj.environment === 'PRODUCTION'
-                              ? 'bg-rose-400'
-                              : proj.environment === 'TESTING'
-                              ? 'bg-amber-400'
-                              : 'bg-emerald-400'
-                          }`}
-                        />
-                        <span>{proj.environment}</span>
-                      </span>
+                        {proj.environment}
+                      </Badge>
                     </div>
 
-                    <p className="text-xs text-neutral-300 mt-3 line-clamp-2 min-h-[36px] leading-relaxed">
-                      {proj.description || 'No description provided.'}
+                    <p className="text-xs text-zinc-400 line-clamp-2 mt-2 leading-relaxed font-normal">
+                      {proj.description || 'API Security Management Workspace'}
                     </p>
+                  </CardHeader>
 
-                    <div className="mt-4 pt-3 border-t border-neutral-800/80 flex items-center justify-between text-xs text-neutral-400">
-                      <span className="flex items-center gap-1.5 text-[11px]">
-                        <Box className="w-3.5 h-3.5 text-neutral-500" />
-                        <span>{projectApis.length} {projectApis.length === 1 ? 'API' : 'APIs'}</span>
-                      </span>
+                  <CardContent className="px-4 py-2">
+                    <div className="grid grid-cols-2 gap-2 text-xs py-2.5 border-y border-zinc-900">
+                      <div className="space-y-0.5">
+                        <span className="text-zinc-500 text-[10px] uppercase font-mono">Endpoints</span>
+                        <div className="flex items-center gap-1.5 text-zinc-200 font-mono text-xs">
+                          <Box className="w-3.5 h-3.5 text-zinc-400" />
+                          <span>{projectApis.length} {projectApis.length === 1 ? 'Route' : 'Routes'}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <span className="text-zinc-500 text-[10px] uppercase font-mono">Created</span>
+                        <div className="flex items-center gap-1.5 text-zinc-400 font-mono text-xs">
+                          <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+                          <span>
+                            {proj.createdAt
+                              ? new Date(proj.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })
+                              : 'Recent'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </CardContent>
 
-                  <div className="mt-5 pt-3.5 border-t border-neutral-800/80 flex items-center justify-between gap-2">
-                    <button
+                  <CardFooter className="p-3 pt-1 flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditModal(proj)}
+                        className="h-6 w-6 text-zinc-400 hover:text-white hover:bg-zinc-900 cursor-pointer"
+                        title="Edit Project"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-zinc-400 hover:text-rose-400 hover:bg-zinc-900 cursor-pointer"
+                            title="Delete Project"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="border-zinc-800 bg-zinc-950 text-white shadow-2xl">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-sm font-semibold">Delete Project "{proj.name}"?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-xs text-zinc-400">
+                              This action permanently removes this workspace and revokes associated gateway routes.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="h-7 text-xs border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white">Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => onDeleteProject(proj.id)}
+                              className="h-7 text-xs bg-rose-600 hover:bg-rose-500 text-white"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+
+                    <Button
+                      variant={isSelected ? 'default' : 'outline'}
+                      size="sm"
                       onClick={() => onSelectProject(proj)}
-                      className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-medium transition-all ${
+                      className={`h-6 px-2.5 text-xs font-medium cursor-pointer ${
                         isSelected
-                          ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-750'
-                          : 'bg-white hover:bg-neutral-200 text-black'
+                          ? 'bg-zinc-800 text-white border border-zinc-700'
+                          : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800'
                       }`}
                     >
-                      {isSelected ? 'Current Workspace' : 'Select'}
-                    </button>
-                    <button
-                      onClick={() => openEditModal(proj)}
-                      className="p-2 rounded-xl border border-neutral-800 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors"
-                      title="Edit Project"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => onDeleteProject(proj.id, proj.name)}
-                      className="p-2 rounded-xl border border-neutral-800 hover:bg-rose-950/30 hover:border-rose-900/40 text-neutral-400 hover:text-rose-400 transition-colors"
-                      title="Delete Project"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+                      {isSelected ? (
+                        <>
+                          <Check className="w-3 h-3 mr-1 text-emerald-400" />
+                          <span>Active</span>
+                        </>
+                      ) : (
+                        <span>Select Scope</span>
+                      )}
+                    </Button>
+                  </CardFooter>
+                </Card>
               );
             })}
           </div>
 
-          {/* Pagination Controls */}
           <Pagination
             currentPage={currentPage}
             totalItems={projects.length}
@@ -277,231 +341,215 @@ export default function ProjectsView({
         </div>
       )}
 
-      {/* Modal: New Project (Rendered via React Portal for true viewport centering) */}
-      {showCreateModal &&
-        createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in font-sans overflow-y-auto">
-            <div className="relative w-full max-w-md rounded-2xl border border-neutral-800 bg-[#09090b] p-6 shadow-2xl animate-scale-in my-auto">
-              {/* Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-neutral-800/80">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white">
-                    <Plus className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-white tracking-wide">
-                      New Project
-                    </h3>
-                    <p className="text-xs text-neutral-400 mt-0.5">
-                      Create an isolated workspace for your APIs.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+      {/* Dialog: Create Project */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-xl border border-zinc-800 bg-zinc-950 text-white shadow-2xl p-0 overflow-hidden sm:rounded-xl">
+          {/* Header */}
+          <div className="p-7 pb-3 bg-zinc-950">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-medium">Workspace Provisioning</span>
+            </div>
+            <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-100">
+              Create Project Workspace
+            </DialogTitle>
+            <DialogDescription className="text-sm text-zinc-400 mt-2 leading-relaxed">
+              Provision an isolated tenant environment with dedicated rate limits, HMAC auth policies, and real-time telemetry.
+            </DialogDescription>
+          </div>
+
+          {errorMsg && (
+            <div className="px-7 pt-2">
+              <Alert variant="destructive" className="py-3 bg-rose-950/40 border-rose-800/60 text-rose-300">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs ml-2 leading-relaxed">{errorMsg}</AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          <form onSubmit={handleCreateSubmit} className="p-7 pt-3 space-y-6 text-sm">
+            {/* Project Name */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-zinc-200">
+                  Project Name <span className="text-rose-400">*</span>
+                </Label>
+                <span className="text-xs text-zinc-500 font-mono">Unique identifier</span>
+              </div>
+              <Input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. ShopNex Core Platform"
+                className="bg-zinc-900/90 border-zinc-800 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 h-10 px-3.5 transition-colors"
+              />
+            </div>
+
+            {/* Environment Tier Selectors */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-zinc-200">
+                  Target Environment Tier <span className="text-rose-400">*</span>
+                </Label>
+                <span className="text-xs text-zinc-500 font-mono">Governs rate limits</span>
               </div>
 
-              {errorMsg && (
-                <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleCreateSubmit} className="mt-4 space-y-4">
-                {/* Project Name */}
-                <div>
-                  <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                    Project Name <span className="text-neutral-500 font-normal">(required)</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    autoFocus
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Core Banking APIs"
-                    className="w-full rounded-xl bg-[#0c0c0e] border border-neutral-800 px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-600 focus:ring-1 focus:ring-neutral-700 transition-all"
-                  />
-                </div>
-
-                {/* Environment Segmented Selector */}
-                <div>
-                  <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                    Environment Tier
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {envOptions.map((opt) => {
-                      const isSelected = environment === opt.id;
-                      return (
-                        <button
-                          type="button"
-                          key={opt.id}
-                          onClick={() => setEnvironment(opt.id)}
-                          className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
-                            isSelected
-                              ? 'bg-neutral-800 border-neutral-700 text-white shadow-sm'
-                              : 'bg-[#0c0c0e] border-neutral-850 text-neutral-400 hover:text-neutral-200 hover:border-neutral-800'
-                          }`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${opt.dot}`} />
-                          <span>{opt.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-xs font-medium text-neutral-300 mb-1.5 flex items-center justify-between">
-                    <span>Description</span>
-                    <span className="text-[11px] text-neutral-500 font-normal">Optional</span>
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Workspace scope or upstream targets..."
-                    className="w-full rounded-xl bg-[#0c0c0e] border border-neutral-800 px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-600 focus:ring-1 focus:ring-neutral-700 transition-all leading-relaxed resize-none"
-                  />
-                </div>
-
-                {/* Actions */}
-                <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-3.5 py-2 rounded-xl text-xs text-neutral-400 hover:text-white transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-5 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-all disabled:opacity-50 shadow-sm"
-                  >
-                    {isSubmitting ? 'Creating...' : 'Create Project'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body
-        )}
-
-      {/* Modal: Edit Project (Rendered via React Portal) */}
-      {showEditModal && editingProject &&
-        createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in font-sans overflow-y-auto">
-            <div className="relative w-full max-w-md rounded-2xl border border-neutral-800 bg-[#09090b] p-6 shadow-2xl animate-scale-in my-auto">
-              <div className="flex items-center justify-between pb-4 border-b border-neutral-800/80">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white">
-                    <Edit3 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-white tracking-wide">
-                      Edit Project
-                    </h3>
-                    <p className="text-xs text-neutral-400 mt-0.5">
-                      Update workspace details.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                {[
+                  { id: 'DEVELOPMENT', label: 'Development', dot: 'bg-emerald-400' },
+                  { id: 'TESTING', label: 'Staging / QA', dot: 'bg-amber-400' },
+                  { id: 'PRODUCTION', label: 'Production', dot: 'bg-rose-400' }
+                ].map((tier) => {
+                  const isSelected = environment === tier.id;
+                  return (
+                    <button
+                      key={tier.id}
+                      type="button"
+                      onClick={() => setEnvironment(tier.id)}
+                      className={`h-9 px-4 rounded-md text-xs font-mono transition-colors cursor-pointer flex items-center gap-2 ${
+                        isSelected
+                          ? 'bg-zinc-850 text-white font-semibold border border-zinc-700 shadow-sm'
+                          : 'border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:border-zinc-750'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${isSelected ? tier.dot : 'bg-zinc-600'}`} />
+                      <span>{tier.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-
-              {errorMsg && (
-                <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                    Project Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-xl bg-[#0c0c0e] border border-neutral-800 px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-neutral-600 focus:ring-1 focus:ring-neutral-700 transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                    Environment Tier
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {envOptions.map((opt) => {
-                      const isSelected = environment === opt.id;
-                      return (
-                        <button
-                          type="button"
-                          key={opt.id}
-                          onClick={() => setEnvironment(opt.id)}
-                          className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
-                            isSelected
-                              ? 'bg-neutral-800 border-neutral-700 text-white shadow-sm'
-                              : 'bg-[#0c0c0e] border-neutral-850 text-neutral-400 hover:text-neutral-200 hover:border-neutral-800'
-                          }`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${opt.dot}`} />
-                          <span>{opt.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-neutral-300 mb-1.5 flex items-center justify-between">
-                    <span>Description</span>
-                    <span className="text-[11px] text-neutral-500 font-normal">Optional</span>
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full rounded-xl bg-[#0c0c0e] border border-neutral-800 px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-neutral-600 focus:ring-1 focus:ring-neutral-700 transition-all resize-none"
-                  />
-                </div>
-
-                <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setShowEditModal(false)}
-                    className="px-3.5 py-2 rounded-xl text-xs text-neutral-400 hover:text-white transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-5 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-all disabled:opacity-50 shadow-sm"
-                  >
-                    {isSubmitting ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
             </div>
-          </div>,
-          document.body
-        )}
+
+            {/* Description */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-zinc-200">Description</Label>
+                <span className="text-xs text-zinc-500 font-mono">Optional</span>
+              </div>
+              <textarea
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief summary of upstream services, team ownership, or gateway routing scope..."
+                className="w-full rounded-md bg-zinc-900/90 border border-zinc-800 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors leading-relaxed resize-none"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="pt-3 flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCreateModal(false)}
+                className="text-xs border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white h-9 px-4 shadow-none cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                size="sm"
+                className="bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs h-9 px-5 shadow-none cursor-pointer transition-colors"
+              >
+                {isSubmitting ? 'Creating...' : 'Create Workspace'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Edit Project */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-md border-zinc-800 bg-zinc-950 text-white shadow-2xl">
+          <DialogHeader className="pb-3 border-b border-zinc-800/80">
+            <DialogTitle className="text-sm font-medium tracking-tight text-zinc-100">
+              Edit Project Workspace
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400 mt-0.5">
+              Update workspace configuration and tier
+            </DialogDescription>
+          </DialogHeader>
+
+          {errorMsg && (
+            <Alert variant="destructive" className="py-2 bg-rose-950/40 border-rose-800/60 text-rose-300">
+              <AlertCircle className="h-3.5 w-3.5" />
+              <AlertDescription className="text-xs ml-2">{errorMsg}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-zinc-300">
+                Project Name <span className="text-rose-400">*</span>
+              </Label>
+              <Input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="bg-zinc-900 border-zinc-800 text-xs text-zinc-100 focus:border-zinc-600 h-8"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-zinc-300">
+                Environment Tier
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {envOptions.map((opt) => {
+                  const isSelected = environment === opt.id;
+                  return (
+                    <button
+                      type="button"
+                      key={opt.id}
+                      onClick={() => setEnvironment(opt.id)}
+                      className={`py-1.5 px-2.5 rounded-md border text-xs font-mono transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? 'bg-zinc-800 border-zinc-600 text-white font-semibold'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${opt.dot}`} />
+                      <span>{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-zinc-300">Description</Label>
+              <textarea
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-zinc-600 transition-colors leading-relaxed resize-none"
+              />
+            </div>
+
+            <DialogFooter className="pt-3 border-t border-zinc-800/80 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEditModal(false)}
+                className="text-xs border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white h-7 px-3 shadow-none cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                size="sm"
+                className="bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs h-7 px-3.5 shadow-none cursor-pointer transition-colors"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

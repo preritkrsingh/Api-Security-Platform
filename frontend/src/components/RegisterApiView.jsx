@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
+  ArrowRight,
   Check,
   CheckCircle2,
   Copy,
   ExternalLink,
+  Globe,
   Key,
   Layers,
+  Lock,
   Plus,
   RefreshCw,
-  Server,
-  Zap
+  Shield,
 } from 'lucide-react';
 import { platformApi } from '../services/api';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function RegisterApiView({
   projects = [],
@@ -31,7 +38,6 @@ export default function RegisterApiView({
   const [allowedMethods, setAllowedMethods] = useState(['GET', 'POST', 'PUT', 'DELETE']);
   const [allowedPathPrefix, setAllowedPathPrefix] = useState('/');
   const [rateLimitRps, setRateLimitRps] = useState(100);
-  const [connectTimeoutMs, setConnectTimeoutMs] = useState(3000);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,31 +53,7 @@ export default function RegisterApiView({
     if (currentProject?.id && !registeredApi) {
       setSelectedProjectId(currentProject.id);
     }
-  }, [currentProject?.id]);
-
-  const quickPresets = [
-    {
-      name: 'Local Service',
-      defaultName: 'My Local Service',
-      url: 'http://localhost:5000',
-      prefix: '/'
-    },
-    {
-      name: 'Cloud Microservice',
-      defaultName: 'Production API',
-      url: 'https://api.example.com',
-      prefix: '/api/v1'
-    }
-  ];
-
-  const applyPreset = (preset) => {
-    setUpstreamBaseUrl(preset.url);
-    setAllowedPathPrefix(preset.prefix);
-    if (!name.trim()) {
-      setName(preset.defaultName);
-    }
-    showToast?.('info', `Applied ${preset.name} preset`);
-  };
+  }, [currentProject?.id, registeredApi]);
 
   const handleMethodToggle = (method) => {
     if (allowedMethods.includes(method)) {
@@ -117,7 +99,7 @@ export default function RegisterApiView({
         allowedMethods,
         allowedPathPrefix: allowedPathPrefix.trim() || '/',
         rateLimitRps: Number(rateLimitRps) || 100,
-        connectTimeoutMs: Number(connectTimeoutMs) || 3000,
+        connectTimeoutMs: 3000,
         maxRequestBodyBytes: 1048576
       };
 
@@ -173,290 +155,384 @@ export default function RegisterApiView({
   const allMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-12 animate-fade-in font-sans">
+    <div className="max-w-4xl mx-auto space-y-8 pb-16 animate-page-enter font-sans">
       {/* Header Bar */}
-      <div className="flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => onNavigate('apis')}
-            className="text-xs text-neutral-400 hover:text-white flex items-center gap-1.5 transition-colors mb-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to APIs</span>
-          </button>
-          <h1 className="text-xl font-bold text-white tracking-tight">Register New API</h1>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Connect an upstream service to the API Gateway to enforce security policies and traffic telemetry.
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate('apis')}
+              className="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 h-7 px-2 hover:bg-zinc-900 -ml-2 cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Endpoints</span>
+            </Button>
+            <span className="text-zinc-600">/</span>
+            <span className="text-xs font-mono text-zinc-400">Onboarding</span>
+          </div>
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Onboard API Route</h1>
+          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-2xl">
+            Configure upstream microservice routing through Spring Cloud Gateway with cryptographic HMAC verification and token-bucket rate limiting.
           </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-zinc-900/60 border border-zinc-900 text-zinc-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            GATEWAY :8080
+          </span>
         </div>
       </div>
 
       {/* Success View */}
       {registeredApi ? (
-        <div className="rounded-2xl border border-neutral-800/80 bg-[#08080a] p-7 space-y-6 shadow-sm animate-fade-in">
-          {/* Status Header */}
-          <div className="flex items-start gap-3.5 pb-5 border-b border-neutral-800/80">
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <CheckCircle2 className="w-6 h-6" />
+        <Card className="border-0 bg-zinc-950 shadow-none overflow-hidden sm:rounded-xl">
+          <CardContent className="p-8 sm:p-10 space-y-8">
+            {/* Status Header */}
+            <div className="flex items-start gap-4 pb-2">
+              <div className="p-3 rounded-lg bg-emerald-950/40 text-emerald-400 shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-base font-semibold text-zinc-100">API Route Successfully Protected</h2>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  <span className="font-medium text-zinc-200">{registeredApi.name}</span> is live on Spring Cloud Gateway. Traffic matching this route is intercepted and inspected in real time.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-base font-semibold text-white">API Successfully Registered</h2>
-              <p className="text-xs text-neutral-400 mt-0.5">
-                <span className="font-medium text-white">{registeredApi.name}</span> is now protected and routed through the security gateway.
-              </p>
-            </div>
-          </div>
 
-          {/* Gateway Route */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-neutral-300">Gateway Proxy Endpoint</label>
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-[#0c0c0e] border border-neutral-800">
-              <span className="font-mono text-xs text-emerald-400 truncate flex-1">
-                http://localhost:8080/proxy/{registeredApi.id}
-                {registeredApi.allowedPathPrefix === '/' ? '' : registeredApi.allowedPathPrefix}
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  copyToClipboard(
-                    `http://localhost:8080/proxy/${registeredApi.id}${
-                      registeredApi.allowedPathPrefix === '/' ? '' : registeredApi.allowedPathPrefix
-                    }`
-                  )
-                }
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-xs text-neutral-300 hover:text-white border border-neutral-700 transition-colors shrink-0"
-              >
-                {copiedRoute ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedRoute ? 'Copied' : 'Copy URL'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* API Key Generation */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-neutral-300">API Key Authentication</label>
-            {generatedApiKey ? (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-[#0c0c0e] border border-neutral-800">
-                <Key className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="font-mono text-xs text-white truncate flex-1 tracking-wider">
-                  {generatedApiKey}
+            {/* Gateway Route */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-zinc-300">Gateway Reverse-Proxy Endpoint</label>
+                <span className="text-[10px] font-mono text-emerald-400">ONLINE</span>
+              </div>
+              <div className="flex items-center gap-2 p-3.5 rounded-lg bg-zinc-900/60 border border-zinc-900">
+                <span className="font-mono text-xs text-sky-400 truncate flex-1 select-all">
+                  http://localhost:8080/proxy/{registeredApi.id}
+                  {registeredApi.allowedPathPrefix === '/' ? '' : registeredApi.allowedPathPrefix}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(generatedApiKey, true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-xs text-neutral-300 hover:text-white border border-neutral-700 transition-colors shrink-0"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    copyToClipboard(
+                      `http://localhost:8080/proxy/${registeredApi.id}${
+                        registeredApi.allowedPathPrefix === '/' ? '' : registeredApi.allowedPathPrefix
+                      }`
+                    )
+                  }
+                  className="h-8 text-xs border-zinc-800 bg-zinc-950 hover:bg-zinc-850 text-zinc-200 shadow-none cursor-pointer"
                 >
-                  {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedKey ? 'Copied' : 'Copy Key'}</span>
-                </button>
+                  {copiedRoute ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span className="ml-1.5">{copiedRoute ? 'Copied' : 'Copy'}</span>
+                </Button>
               </div>
-            ) : (
-              <div className="p-4 rounded-xl border border-neutral-800 bg-[#0c0c0e] flex items-center justify-between gap-4">
-                <div className="text-xs text-neutral-400">
-                  Generate a cryptographic SHA-256 key to access this endpoint through the gateway.
-                </div>
-                <button
-                  type="button"
-                  onClick={handleGenerateKey}
-                  disabled={isGeneratingKey}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-semibold shadow-sm transition-all btn-click shrink-0 disabled:opacity-50"
-                >
-                  {isGeneratingKey ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Key className="w-3.5 h-3.5" />
-                  )}
-                  <span>Generate Key</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Action Footer */}
-          <div className="pt-4 border-t border-neutral-800/80 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-4 py-2 rounded-xl border border-neutral-800 bg-[#0c0c0e] hover:bg-neutral-900 text-xs text-neutral-300 hover:text-white transition-colors"
-            >
-              + Register Another API
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate('apis')}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-semibold shadow-sm transition-all btn-click"
-            >
-              <span>View API Inventory</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* Minimal Registration Form */
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-neutral-800/80 bg-[#08080a] p-6 sm:p-7 space-y-6 shadow-sm"
-        >
-          {/* Quick Presets */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-medium text-neutral-500 uppercase tracking-wider">Presets:</span>
-            {quickPresets.map((preset) => (
-              <button
-                key={preset.name}
-                type="button"
-                onClick={() => applyPreset(preset)}
-                className="px-2.5 py-1 rounded-lg text-xs border border-neutral-800 bg-[#0c0c0e] text-neutral-300 hover:text-white hover:border-neutral-700 transition-colors"
-              >
-                {preset.name}
-              </button>
-            ))}
-          </div>
-
-          {errorMsg && (
-            <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs text-rose-300 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
-              <span>{errorMsg}</span>
             </div>
+
+            {/* API Key Generation */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-zinc-300">HMAC-SHA256 Client Security Token</label>
+                <span className="text-[10px] font-mono text-zinc-500">Header: X-Api-Key</span>
+              </div>
+              {generatedApiKey ? (
+                <div className="flex items-center gap-2 p-3.5 rounded-lg bg-zinc-900/60 border border-zinc-900">
+                  <Key className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="font-mono text-xs text-zinc-100 truncate flex-1 select-all">
+                    {generatedApiKey}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(generatedApiKey, true)}
+                    className="h-8 text-xs border-zinc-800 bg-zinc-950 hover:bg-zinc-850 text-zinc-200 shadow-none cursor-pointer"
+                  >
+                    {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span className="ml-1.5">{copiedKey ? 'Copied' : 'Copy Key'}</span>
+                  </Button>
+                </div>
+              ) : (
+                <div className="p-4 rounded-lg border border-zinc-900 bg-zinc-900/30 flex items-center justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-zinc-300 font-medium">Issue an authentication credential</p>
+                    <p className="text-[11px] text-zinc-500 leading-relaxed">
+                      Sign requests with a SHA-256 HMAC token. Requests without this token will be intercepted with HTTP 401.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleGenerateKey}
+                    disabled={isGeneratingKey}
+                    size="sm"
+                    className="bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs h-8 px-3.5 flex items-center gap-1.5 shadow-none shrink-0 cursor-pointer"
+                  >
+                    {isGeneratingKey ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Key className="w-3.5 h-3.5" />
+                    )}
+                    <span>Generate Key</span>
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Action Footer */}
+            <div className="pt-6 flex items-center justify-between gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                className="border-zinc-850 bg-zinc-900 hover:bg-zinc-800 text-xs text-zinc-300 shadow-none h-9 px-4 cursor-pointer"
+              >
+                + Onboard Another API
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => onNavigate('apis')}
+                className="bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-medium flex items-center gap-1.5 shadow-none h-9 px-5 cursor-pointer"
+              >
+                <span>View Inventory</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        /* Form */
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {errorMsg && (
+            <Alert variant="destructive" className="py-3.5 bg-rose-950/40 border-rose-800/60 text-rose-300">
+              <AlertDescription className="text-xs leading-relaxed">{errorMsg}</AlertDescription>
+            </Alert>
           )}
 
-          {/* 2-Column Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Project Workspace */}
-            <div>
-              <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                Project Workspace <span className="text-rose-400">*</span>
-              </label>
-              <select
-                value={selectedProjectId}
-                onChange={(e) => {
-                  setSelectedProjectId(e.target.value);
-                  const proj = projects.find((p) => p.id === e.target.value);
-                  if (proj) onSelectProject?.(proj);
-                }}
-                className="w-full rounded-xl border border-neutral-800 bg-[#0c0c0e] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-neutral-600 transition-colors"
-              >
-                {projects.map((proj) => (
-                  <option key={proj.id} value={proj.id} className="bg-neutral-900 text-white">
-                    {proj.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <Card className="border-0 bg-zinc-950 sm:rounded-xl shadow-none">
+            <CardContent className="p-7 sm:p-9 space-y-10">
+              {/* Section 1: Tenant Workspace & Route Identity */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <Layers className="w-4 h-4 text-zinc-400" />
+                  <div>
+                    <h2 className="text-sm font-semibold text-zinc-200">1. Workspace & Route Identity</h2>
+                    <p className="text-xs text-zinc-500">Define tenant isolation scope and assign an identifier to this route.</p>
+                  </div>
+                </div>
 
-            {/* API Name */}
-            <div>
-              <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                API Name <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Inventory Service"
-                className="w-full rounded-xl border border-neutral-800 bg-[#0c0c0e] px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-600 transition-colors"
-              />
-            </div>
-          </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Project Workspace */}
+                  <div className="space-y-2.5">
+                    <Label className="text-sm font-medium text-zinc-200 leading-normal">
+                      Target Project Workspace <span className="text-rose-400">*</span>
+                    </Label>
+                    <select
+                      value={selectedProjectId}
+                      onChange={(e) => {
+                        setSelectedProjectId(e.target.value);
+                        const proj = projects.find((p) => p.id === e.target.value);
+                        if (proj) onSelectProject?.(proj);
+                      }}
+                      className="w-full rounded-md border border-zinc-900 bg-zinc-900/70 px-3.5 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-zinc-600 transition-colors h-11"
+                    >
+                      {projects.map((proj) => (
+                        <option key={proj.id} value={proj.id} className="bg-zinc-900 text-white">
+                          {proj.name} ({proj.environment})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-          {/* Upstream Base URL */}
-          <div>
-            <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-              Upstream Destination URL <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="text"
-              value={upstreamBaseUrl}
-              onChange={(e) => setUpstreamBaseUrl(e.target.value)}
-              placeholder="e.g. http://localhost:5000 or https://api.example.com"
-              className="w-full rounded-xl border border-neutral-800 bg-[#0c0c0e] px-3.5 py-2.5 text-xs font-mono text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-600 transition-colors"
-            />
-            <p className="text-[11px] text-neutral-500 mt-1">
-              Internal network container name or HTTP host where traffic will be proxied.
-            </p>
-          </div>
+                  {/* Route Name */}
+                  <div className="space-y-2.5">
+                    <Label className="text-sm font-medium text-zinc-200 leading-normal">
+                      Route Identifier <span className="text-rose-400">*</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. ShopNex Checkout API"
+                      className="bg-zinc-900/70 border-zinc-900 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 h-11 px-3.5"
+                    />
+                  </div>
+                </div>
+              </div>
 
-          {/* Routing & Policy Controls */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 border-t border-neutral-800/80">
-            {/* Path Prefix */}
-            <div>
-              <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                Allowed Path Prefix
-              </label>
-              <input
-                type="text"
-                value={allowedPathPrefix}
-                onChange={(e) => setAllowedPathPrefix(e.target.value)}
-                placeholder="/"
-                className="w-full rounded-xl border border-neutral-800 bg-[#0c0c0e] px-3.5 py-2.5 text-xs font-mono text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-600 transition-colors"
-              />
-            </div>
+              {/* Section 2: Upstream Destination & Route Matching */}
+              <div className="space-y-6 pt-2">
+                <div className="flex items-center gap-3">
+                  <Globe className="w-4 h-4 text-zinc-400" />
+                  <div>
+                    <h2 className="text-sm font-semibold text-zinc-200">2. Upstream Destination & Route Matching</h2>
+                    <p className="text-xs text-zinc-500">Specify the internal target service address and the intercepted URI prefix.</p>
+                  </div>
+                </div>
 
-            {/* Rate Limit RPS */}
-            <div>
-              <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                Rate Limit (Req / sec)
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="5000"
-                value={rateLimitRps}
-                onChange={(e) => setRateLimitRps(e.target.value)}
-                className="w-full rounded-xl border border-neutral-800 bg-[#0c0c0e] px-3.5 py-2.5 text-xs font-mono text-white focus:outline-none focus:border-neutral-600 transition-colors"
-              />
-            </div>
-          </div>
+                {/* Upstream Base URL */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-zinc-200 leading-normal">
+                      Upstream Destination URL <span className="text-rose-400">*</span>
+                    </Label>
+                    <span className="text-xs font-mono text-zinc-500">Private VPC or container endpoint</span>
+                  </div>
+                  <Input
+                    type="text"
+                    value={upstreamBaseUrl}
+                    onChange={(e) => setUpstreamBaseUrl(e.target.value)}
+                    placeholder="e.g. http://host.docker.internal:8081 or http://localhost:5000"
+                    className="font-mono text-sm h-11 px-3.5 bg-zinc-900/70 border-zinc-900 text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600"
+                  />
+                  <p className="text-xs text-zinc-500 leading-relaxed pt-0.5">
+                    All verified requests passing perimeter policies will be proxied to this internal endpoint.
+                  </p>
+                </div>
 
-          {/* Allowed HTTP Methods */}
-          <div className="space-y-1.5 pt-1">
-            <label className="block text-xs font-medium text-neutral-300">
-              Allowed HTTP Methods
-            </label>
-            <div className="flex items-center gap-2 flex-wrap">
-              {allMethods.map((m) => {
-                const isSelected = allowedMethods.includes(m);
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => handleMethodToggle(m)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all ${
-                      isSelected
-                        ? 'bg-white text-black font-semibold'
-                        : 'border border-neutral-800 bg-[#0c0c0e] text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    {m}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                {/* Allowed Path Prefix */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-zinc-200 leading-normal">
+                      Allowed Path Prefix
+                    </Label>
+                    <span className="text-xs font-mono text-zinc-500">Route Subpath / Matcher</span>
+                  </div>
+                  <Input
+                    type="text"
+                    value={allowedPathPrefix}
+                    onChange={(e) => setAllowedPathPrefix(e.target.value)}
+                    placeholder="/"
+                    className="font-mono text-sm h-11 px-3.5 bg-zinc-900/70 border-zinc-900 text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600"
+                  />
+                  <p className="text-xs text-zinc-500 leading-relaxed pt-0.5">
+                    Specifies which incoming URL paths are accepted and forwarded to the upstream service.
+                  </p>
+                </div>
 
-          {/* Form Actions */}
-          <div className="pt-4 border-t border-neutral-800/80 flex items-center justify-end gap-3">
-            <button
+                {/* Live Path Mapping Visualizer */}
+                <div className="p-4 rounded-lg bg-zinc-900/40 border border-zinc-900 space-y-2">
+                  <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Path Forwarding Diagram</span>
+                    <span className="text-zinc-500">Reverse Proxy</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 font-mono text-xs">
+                    <div className="px-2.5 py-1.5 rounded bg-zinc-950 border border-zinc-900 text-sky-400 truncate">
+                      /proxy/:routeId{allowedPathPrefix.startsWith('/') ? allowedPathPrefix : `/${allowedPathPrefix}`}
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-zinc-600 shrink-0 hidden sm:block" />
+                    <div className="px-2.5 py-1.5 rounded bg-zinc-950 border border-zinc-900 text-zinc-300 truncate">
+                      {upstreamBaseUrl.trim() || 'http://upstream-host:8081'}
+                      {allowedPathPrefix !== '/' ? (allowedPathPrefix.startsWith('/') ? allowedPathPrefix : `/${allowedPathPrefix}`) : ''}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Security Policies & Traffic Controls */}
+              <div className="space-y-6 pt-2">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-4 h-4 text-zinc-400" />
+                  <div>
+                    <h2 className="text-sm font-semibold text-zinc-200">3. Security Policies & Traffic Controls</h2>
+                    <p className="text-xs text-zinc-500">Configure method whitelisting and token-bucket throttling per client key.</p>
+                  </div>
+                </div>
+
+                {/* Allowed HTTP Methods */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-zinc-200 leading-normal">
+                      Allowed HTTP Methods
+                    </Label>
+                    <span className="text-xs text-zinc-500 font-mono">Unselected verbs return HTTP 405</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {allMethods.map((m) => {
+                      const isSelected = allowedMethods.includes(m);
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => handleMethodToggle(m)}
+                          className={`h-9 px-4 rounded-md text-xs font-mono transition-colors cursor-pointer flex items-center gap-2 ${
+                            isSelected
+                              ? 'bg-zinc-800 text-white font-medium border border-zinc-850 shadow-sm'
+                              : 'border border-zinc-900 bg-zinc-900/50 text-zinc-400 hover:text-white hover:border-zinc-850'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-sky-400' : 'bg-zinc-600'}`} />
+                          <span>{m}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Rate Limit RPS */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-zinc-200 leading-normal">
+                      Token-Bucket Limit (Req / sec)
+                    </Label>
+                    <span className="text-xs font-mono text-zinc-500">Redis-backed Token Bucket</span>
+                  </div>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="5000"
+                    value={rateLimitRps}
+                    onChange={(e) => setRateLimitRps(e.target.value)}
+                    className="font-mono text-sm h-11 px-3.5 bg-zinc-900/70 border-zinc-900 text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600"
+                  />
+                  <p className="text-xs text-zinc-500 leading-relaxed pt-0.5">
+                    Maximum allowable burst throughput per client API token before returning HTTP 429 Too Many Requests.
+                  </p>
+                </div>
+
+                {/* Authentication Policy Notice */}
+                <div className="p-4 rounded-lg bg-zinc-900/40 border border-zinc-900 flex items-start gap-3">
+                  <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-zinc-200">HMAC-SHA256 Token Authentication Enforced</p>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      Every request routed through this endpoint must present an authorized <code className="text-zinc-300 font-mono">X-Api-Key</code> token. Missing or invalid signatures are intercepted with HTTP 401.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Form Action Controls */}
+          <div className="flex items-center justify-end gap-3.5 pt-2">
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => onNavigate('apis')}
-              className="px-4 py-2.5 rounded-xl border border-neutral-800 bg-[#0c0c0e] hover:bg-neutral-900 text-xs text-neutral-400 hover:text-white transition-colors"
+              className="text-xs border-zinc-850 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white h-10 px-5 shadow-none cursor-pointer"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-semibold shadow-sm transition-all btn-click disabled:opacity-50"
+              size="sm"
+              className="bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs flex items-center gap-2 shadow-none h-10 px-6 transition-colors cursor-pointer"
             >
               {isSubmitting ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
               )}
-              <span>{isSubmitting ? 'Registering...' : 'Register API'}</span>
-            </button>
+              <span>{isSubmitting ? 'Registering Route...' : 'Register Endpoint'}</span>
+            </Button>
           </div>
         </form>
       )}
     </div>
   );
 }
+
+

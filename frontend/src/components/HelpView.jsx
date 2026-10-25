@@ -7,19 +7,22 @@ import {
   CheckCircle2,
   Shield,
   Layers,
-  Box,
   Terminal,
   Activity,
   AlertTriangle,
-  Server
+  Server,
+  Key,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function HelpView({ showToast }) {
   const [openSection, setOpenSection] = useState('quickstart');
 
   const copyText = (txt, label = 'Copied to clipboard!') => {
     navigator.clipboard.writeText(txt);
-    showToast('success', label);
+    showToast?.('success', label);
   };
 
   const toggle = (id) => {
@@ -27,206 +30,218 @@ export default function HelpView({ showToast }) {
   };
 
   return (
-    <div className="space-y-5 max-w-4xl animate-fade-in pb-12 text-neutral-100 font-sans">
+    <div className="space-y-4 max-w-4xl animate-page-enter pb-12 text-zinc-100 font-sans">
       {/* Top Header */}
-      <div className="pb-3 border-b border-neutral-800">
+      <div className="pb-3 border-b border-zinc-800/80">
         <div className="flex items-center gap-2.5">
-          <h2 className="text-base font-semibold text-white tracking-wide">
-            Integration & Verification Guide
+          <h2 className="text-base font-semibold text-zinc-100 tracking-tight">
+            Developer Documentation & Verification Suite
           </h2>
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-neutral-900 text-neutral-300 border border-neutral-800">
-            Docs
-          </span>
+          <Badge variant="outline" className="text-[10px] uppercase font-mono border-zinc-800 bg-zinc-900 text-zinc-400 py-0 px-1.5">
+            REFERENCE
+          </Badge>
         </div>
-        <p className="text-xs text-neutral-400 mt-1">
-          Instructions for onboarding upstream microservices, validating proxy routes, and enforcing gateway guardrails.
+        <p className="text-xs text-zinc-400 mt-0.5">
+          Step-by-step guidance for onboarding services, dispatching traffic, and testing rate limiting
         </p>
       </div>
 
       {/* Accordion Guide Sections */}
-      <div className="space-y-3 text-xs">
+      <div className="space-y-2.5 text-xs">
         {/* SECTION A: Architecture */}
-        <div className="rounded-2xl border border-neutral-800/80 bg-[#08080a] overflow-hidden shadow-sm">
+        <Card className="border-zinc-800/80 bg-zinc-950 shadow-none overflow-hidden">
           <button
             onClick={() => toggle('what-is')}
-            className="w-full p-4 flex items-center justify-between text-left font-semibold text-white hover:bg-neutral-900/40 transition-colors"
+            className="w-full p-3.5 flex items-center justify-between text-left font-medium text-zinc-100 hover:bg-zinc-900/50 transition-colors cursor-pointer"
           >
-            <div className="flex items-center gap-3">
-              <div className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-white">
-                <Shield className="w-4 h-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="h-6 w-6 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300">
+                <Shield className="w-3.5 h-3.5" />
               </div>
-              <span className="text-sm">A. Architectural Overview: How API Security Platform Protects APIs</span>
+              <span className="text-xs font-semibold text-zinc-200">1. Architectural Foundation & Reverse-Proxy Protection</span>
             </div>
-            {openSection === 'what-is' ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
+            {openSection === 'what-is' ? <ChevronUp className="w-3.5 h-3.5 text-zinc-400" /> : <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />}
           </button>
           {openSection === 'what-is' && (
-            <div className="p-4 pt-0 border-t border-neutral-800/80 text-neutral-300 space-y-2.5 leading-relaxed">
+            <CardContent className="p-4 pt-2 border-t border-zinc-800/80 text-zinc-300 space-y-2 leading-relaxed text-xs">
               <p>
-                <strong>API Security Platform</strong> is an enterprise API perimeter defense and reverse-proxy platform.
+                <strong>VEYRION</strong> is an autonomous API perimeter defense and reverse-proxy control plane.
               </p>
               <p>
-                Instead of exposing internal microservices directly to the public network, client traffic is routed through the <strong>Spring Cloud Gateway (:8080)</strong>. The gateway enforces:
+                Rather than exposing internal microservices directly to untrusted networks, all ingress traffic is routed through <strong>Spring Cloud Gateway (:8080)</strong>. The gateway deterministically enforces:
               </p>
-              <ul className="list-disc list-inside space-y-1.5 text-neutral-400 pl-2">
-                <li><strong className="text-neutral-200">Cryptographic Authentication:</strong> Validates SHA-256 HMAC tokens (<code className="text-neutral-300 font-mono">X-API-Key</code>) and sanitizes sensitive headers before proxying.</li>
-                <li><strong className="text-neutral-200">Token-Bucket Rate Limiting:</strong> Enforces burst thresholds and per-second RPS limits per route, returning 429 Too Many Requests when exceeded.</li>
-                <li><strong className="text-neutral-200">SSRF Guardrails:</strong> Rejects cloud instance metadata (169.254.169.254) and forbidden private network scopes.</li>
-                <li><strong className="text-neutral-200">Operational Telemetry:</strong> Records latency, IP addresses, HTTP status codes, and security incidents in real time.</li>
+              <ul className="list-disc list-inside space-y-1 text-zinc-400 pl-1">
+                <li><strong className="text-zinc-200">Cryptographic Authentication:</strong> Verifies SHA-256 HMAC access tokens (<code className="text-zinc-300 font-mono">X-API-Key</code>) and strips sensitive headers before proxying.</li>
+                <li><strong className="text-zinc-200">Redis Token-Bucket Limiting:</strong> Enforces burst thresholds and per-second RPS limits per route, returning 429 Too Many Requests when drained.</li>
+                <li><strong className="text-zinc-200">SSRF Guardrails:</strong> Intercepts attempts to access private subnets and metadata IPs (169.254.169.254).</li>
+                <li><strong className="text-zinc-200">Live Telemetry:</strong> Records latency, IP addresses, HTTP status codes, and security events in real time.</li>
               </ul>
-            </div>
+            </CardContent>
           )}
-        </div>
+        </Card>
 
-        {/* SECTION B: Core Microservices */}
-        <div className="rounded-2xl border border-neutral-800/80 bg-[#08080a] overflow-hidden shadow-sm">
+        {/* SECTION B: Core Infrastructure & Ports */}
+        <Card className="border-zinc-800/80 bg-zinc-950 shadow-none overflow-hidden">
           <button
             onClick={() => toggle('before-start')}
-            className="w-full p-4 flex items-center justify-between text-left font-semibold text-white hover:bg-neutral-900/40 transition-colors"
+            className="w-full p-3.5 flex items-center justify-between text-left font-medium text-zinc-100 hover:bg-zinc-900/50 transition-colors cursor-pointer"
           >
-            <div className="flex items-center gap-3">
-              <div className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-sky-400">
-                <Server className="w-4 h-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="h-6 w-6 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-sky-400">
+                <Server className="w-3.5 h-3.5" />
               </div>
-              <span className="text-sm">B. Platform Runtime Infrastructure & Ports</span>
+              <span className="text-xs font-semibold text-zinc-200">2. Runtime Fleet Ports & Topology</span>
             </div>
-            {openSection === 'before-start' ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
+            {openSection === 'before-start' ? <ChevronUp className="w-4 h-4 text-zinc-400" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
           </button>
           {openSection === 'before-start' && (
-            <div className="p-4 pt-0 border-t border-neutral-800/80 text-neutral-300 space-y-3 leading-relaxed">
-              <p className="text-neutral-300">API Security Platform microservices running in Docker or host workstation:</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                <div className="p-3 rounded-xl bg-[#0c0c0e] border border-neutral-800">
-                  <span className="text-sky-400 font-semibold font-mono">API Gateway</span>: port 8080
-                  <p className="text-[11px] text-neutral-400 mt-1">Reverse proxy & policy filters</p>
+            <CardContent className="p-4 pt-2 border-t border-zinc-800/80 text-zinc-300 space-y-3 leading-relaxed text-xs">
+              <p className="text-zinc-400">Microservice infrastructure running in Docker containers on host:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="p-2.5 rounded-md bg-zinc-900 border border-zinc-800 font-mono text-[11px]">
+                  <span className="text-sky-400 font-semibold">API Gateway</span>: :8080
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Reverse-proxy & rate limiter</p>
                 </div>
-                <div className="p-3 rounded-xl bg-[#0c0c0e] border border-neutral-800">
-                  <span className="text-indigo-400 font-semibold font-mono">Control Plane</span>: port 8082
-                  <p className="text-[11px] text-neutral-400 mt-1">Management REST API & DB</p>
+                <div className="p-2.5 rounded-md bg-zinc-900 border border-zinc-800 font-mono text-[11px]">
+                  <span className="text-indigo-400 font-semibold">Control Plane</span>: :8082
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Governance API & keys</p>
                 </div>
-                <div className="p-3 rounded-xl bg-[#0c0c0e] border border-neutral-800">
-                  <span className="text-emerald-400 font-semibold font-mono">PostgreSQL</span>: port 5435
-                  <p className="text-[11px] text-neutral-400 mt-1">Relational state & key hashes</p>
+                <div className="p-2.5 rounded-md bg-zinc-900 border border-zinc-800 font-mono text-[11px]">
+                  <span className="text-emerald-400 font-semibold">PostgreSQL</span>: :5435
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Relational catalog & hashes</p>
                 </div>
               </div>
-              <p className="text-xs text-neutral-400">
-                Start or verify the stack with: <code className="bg-black px-2 py-1 rounded-md text-neutral-200 border border-neutral-800 font-mono text-xs">docker compose up -d</code>
+              <p className="text-xs text-zinc-400">
+                Verify running containers at any time with: <code className="bg-zinc-900 px-2 py-0.5 rounded text-zinc-200 border border-zinc-800 font-mono text-[11px]">docker compose ps</code>
               </p>
-            </div>
+            </CardContent>
           )}
-        </div>
+        </Card>
 
         {/* SECTION C: Sending Requests via Gateway */}
-        <div className="rounded-2xl border border-neutral-800/80 bg-[#08080a] overflow-hidden shadow-sm">
+        <Card className="border-zinc-800/80 bg-zinc-950 shadow-none overflow-hidden">
           <button
             onClick={() => toggle('use-gateway')}
-            className="w-full p-4 flex items-center justify-between text-left font-semibold text-white hover:bg-neutral-900/40 transition-colors"
+            className="w-full p-3.5 flex items-center justify-between text-left font-medium text-zinc-100 hover:bg-zinc-900/50 transition-colors cursor-pointer"
           >
-            <div className="flex items-center gap-3">
-              <div className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-emerald-400">
-                <Terminal className="w-4 h-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="h-6 w-6 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-400">
+                <Terminal className="w-3.5 h-3.5" />
               </div>
-              <span className="text-sm">C. Dispatching Traffic & Testing Endpoints via cURL</span>
+              <span className="text-xs font-semibold text-zinc-200">3. Sending Requests via Gateway (cURL Examples)</span>
             </div>
-            {openSection === 'use-gateway' ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
+            {openSection === 'use-gateway' ? <ChevronUp className="w-3.5 h-3.5 text-zinc-400" /> : <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />}
           </button>
           {openSection === 'use-gateway' && (
-            <div className="p-4 pt-0 border-t border-neutral-800/80 text-neutral-300 space-y-3 leading-relaxed">
+            <CardContent className="p-4 pt-2 border-t border-zinc-800/80 text-zinc-300 space-y-3 leading-relaxed text-xs">
               <p>
-                Every protected API registered in API Security Platform is proxied through:
+                Every protected route onboarded into VEYRION is dispatched through:
                 <br />
-                <code className="text-neutral-200 font-mono text-xs">http://localhost:8080/proxy/&#123;apiId&#125;/...</code>
+                <code className="text-sky-400 font-mono text-xs">http://localhost:8080/proxy/&#123;apiId&#125;/...</code>
               </p>
-              <div className="relative p-3.5 rounded-xl bg-black border border-neutral-800 font-mono text-xs text-neutral-200">
+              <div className="relative p-3 rounded-md bg-zinc-900 border border-zinc-800 font-mono text-xs text-zinc-200">
                 <button
                   onClick={() =>
                     copyText(
                       'curl -i http://localhost:8080/proxy/YOUR_API_ID/api/v1/health -H "X-API-Key: YOUR_API_KEY"'
                     )
                   }
-                  className="absolute right-3 top-3 p-1 text-neutral-400 hover:text-white transition-colors"
-                  title="Copy cURL command"
+                  className="absolute right-2.5 top-2.5 p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  title="Copy command"
                 >
                   <Copy className="w-3.5 h-3.5" />
                 </button>
                 curl -i http://localhost:8080/proxy/YOUR_API_ID/api/v1/health \<br />
                 &nbsp;&nbsp;-H "X-API-Key: YOUR_API_KEY"
               </div>
-              <p>
-                <strong>Expected Output:</strong> You will receive <code className="text-emerald-400">HTTP 200 OK</code> with response headers from your upstream service, and the transaction will appear in the Telemetry tab.
+              <p className="text-zinc-400">
+                <strong>Expected Result:</strong> <code className="text-emerald-400 font-mono">HTTP 200 OK</code> returned with proxied response body. Telemetry updates in real time.
               </p>
-            </div>
+            </CardContent>
           )}
-        </div>
+        </Card>
 
-        {/* SECTION D: Security Policy Verification */}
-        <div className="rounded-2xl border border-neutral-800/80 bg-[#08080a] overflow-hidden shadow-sm">
+        {/* SECTION D: Rate Limiting & Auth Test Suite */}
+        <Card className="border-zinc-800/80 bg-zinc-950 shadow-none overflow-hidden">
           <button
             onClick={() => toggle('testing-guide')}
-            className="w-full p-4 flex items-center justify-between text-left font-semibold text-white hover:bg-neutral-900/40 transition-colors"
+            className="w-full p-3.5 flex items-center justify-between text-left font-medium text-zinc-100 hover:bg-zinc-900/50 transition-colors cursor-pointer"
           >
-            <div className="flex items-center gap-3">
-              <div className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-rose-400">
-                <AlertTriangle className="w-4 h-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="h-6 w-6 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-rose-400">
+                <AlertTriangle className="w-3.5 h-3.5" />
               </div>
-              <span className="text-sm">D. Security Guardrails Verification Suite</span>
+              <span className="text-xs font-semibold text-zinc-200">4. Verification Commands for Rate Limiting & Auth</span>
             </div>
-            {openSection === 'testing-guide' ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
+            {openSection === 'testing-guide' ? <ChevronUp className="w-3.5 h-3.5 text-zinc-400" /> : <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />}
           </button>
           {openSection === 'testing-guide' && (
-            <div className="p-4 pt-0 border-t border-neutral-800/80 text-neutral-300 space-y-3.5 leading-relaxed">
+            <CardContent className="p-4 pt-2 border-t border-zinc-800/80 text-zinc-300 space-y-3 leading-relaxed text-xs">
               <div>
-                <p className="font-medium text-white">1. Test Missing / Invalid Key (Expects 401 Unauthorized):</p>
-                <pre className="p-3 mt-1.5 rounded-xl bg-black border border-neutral-800 text-xs font-mono text-neutral-300 overflow-x-auto">
-curl -i http://localhost:8080/proxy/YOUR_API_ID/api/v1/health
-                </pre>
+                <p className="font-medium text-zinc-200">1. Verify Rate Limiting Exhaustion (Expects 429 Too Many Requests):</p>
+                <div className="relative p-2.5 mt-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-300">
+                  <button
+                    onClick={() =>
+                      copyText(
+                        'for i in {1..30}; do curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/proxy/YOUR_API_ID/api/v1/health -H "X-API-Key: YOUR_KEY"; done'
+                      )
+                    }
+                    className="absolute right-2.5 top-2.5 p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    title="Copy command"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                  for i in &#123;1..30&#125;; do curl -s -o /dev/null -w "%&#123;http_code&#125;\n" http://localhost:8080/proxy/YOUR_API_ID/api/v1/health -H "X-API-Key: YOUR_KEY"; done
+                </div>
               </div>
 
               <div>
-                <p className="font-medium text-white">2. Test Disallowed HTTP Verb (Expects 405 Method Not Allowed):</p>
-                <pre className="p-3 mt-1.5 rounded-xl bg-black border border-neutral-800 text-xs font-mono text-neutral-300 overflow-x-auto">
-curl -i -X DELETE http://localhost:8080/proxy/YOUR_API_ID/api/v1/health -H "X-API-Key: YOUR_KEY"
-                </pre>
+                <p className="font-medium text-zinc-200">2. Verify Missing Key Rejection (Expects 401 Unauthorized):</p>
+                <div className="relative p-2.5 mt-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-300">
+                  <button
+                    onClick={() =>
+                      copyText(
+                        'curl -i http://localhost:8080/proxy/YOUR_API_ID/api/v1/health'
+                      )
+                    }
+                    className="absolute right-2.5 top-2.5 p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    title="Copy command"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                  curl -i http://localhost:8080/proxy/YOUR_API_ID/api/v1/health
+                </div>
               </div>
-
-              <div>
-                <p className="font-medium text-white">3. Test Ingress Rate Limiting (Burst 30 rapid requests):</p>
-                <pre className="p-3 mt-1.5 rounded-xl bg-black border border-neutral-800 text-xs font-mono text-neutral-300 overflow-x-auto">
-for i in &#123;1..30&#125;; do curl -s -o /dev/null -w "%&#123;http_code&#125;\n" http://localhost:8080/proxy/YOUR_API_ID/api/v1/health -H "X-API-Key: YOUR_KEY"; done
-                </pre>
-                <p className="text-xs text-neutral-400 mt-1">
-                  You will observe initial 200 OK responses transitioning into <code className="text-amber-400 font-mono">429 Too Many Requests</code> as the token bucket exhausts.
-                </p>
-              </div>
-            </div>
+            </CardContent>
           )}
-        </div>
+        </Card>
       </div>
 
-      {/* Quick Verification Checklist */}
-      <div className="rounded-2xl border border-neutral-800/80 bg-[#08080a] p-5 space-y-3 shadow-sm">
-        <div className="flex items-center gap-2.5 text-white font-semibold text-xs">
+      {/* Production Readiness Checklist */}
+      <Card className="border-zinc-800/80 bg-zinc-950 p-4 space-y-2.5 shadow-none">
+        <div className="flex items-center gap-2 text-zinc-100 font-semibold text-xs">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>PRODUCTION READINESS CHECKLIST</span>
         </div>
-        <div className="space-y-2 text-xs text-neutral-300">
-          <div className="flex items-center gap-2.5">
+        <div className="space-y-1.5 text-xs text-zinc-300">
+          <div className="flex items-center gap-2">
             <span className="text-emerald-400 font-bold">&check;</span>
-            <span>Gateway (:8080) and Control Plane (:8082) are verified UP in Settings.</span>
+            <span>Gateway (:8080) and Control Plane (:8082) sockets verified UP in Settings.</span>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <span className="text-emerald-400 font-bold">&check;</span>
-            <span>Target microservice registered with correct upstream hostname & port.</span>
+            <span>Upstream microservice registered with valid target URL and allowed verbs.</span>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <span className="text-emerald-400 font-bold">&check;</span>
-            <span>Cryptographic 256-bit API Key generated and bound to project environment.</span>
+            <span>Cryptographic SHA-256 HMAC access token generated and tested in Test Console.</span>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <span className="text-emerald-400 font-bold">&check;</span>
-            <span>Dispatched request through interactive Test Console and inspected in Telemetry.</span>
+            <span>Rate-limiting token bucket verified returning 429 when burst threshold is exceeded.</span>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

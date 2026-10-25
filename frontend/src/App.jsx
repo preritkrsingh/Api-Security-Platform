@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { platformApi } from './services/api';
 
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import ToastContainer from './components/ToastContainer';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import AppSidebar from './components/layout/AppSidebar';
+import AppHeader from './components/layout/AppHeader';
+import { Toaster } from '@/components/ui/toaster';
+import { toast } from '@/components/ui/use-toast';
 
 import OverviewView from './components/OverviewView';
 import ProjectsView from './components/ProjectsView';
 import ApisView from './components/ApisView';
 import TrafficMonitoringView from './components/TrafficMonitoringView';
 import SecurityPoliciesView from './components/SecurityPoliciesView';
+import IncidentsView from './components/IncidentsView';
 import SettingsView from './components/SettingsView';
 import HelpView from './components/HelpView';
 import RegisterApiView from './components/RegisterApiView';
@@ -20,7 +23,6 @@ import ConsoleModal from './components/ConsoleModal';
 export default function App() {
   // Navigation & Layout
   const [activeTab, setActiveTab] = useState('overview');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Core Data
@@ -52,20 +54,25 @@ export default function App() {
   const [keysApi, setKeysApi] = useState(null);
   const [consoleApi, setConsoleApi] = useState(null);
 
-  // Stacked Toast Notifications
-  const [toasts, setToasts] = useState([]);
-
+  // Stacked Toast Notifications using shadcn/ui toast system
   const showToast = (type, message, title) => {
-    const id = Math.random().toString(36).substring(2, 9) + Date.now();
-    const newToast = { id, type, message, title };
-    setToasts((prev) => [...prev.slice(-2), newToast]);
-    setTimeout(() => {
-      setToasts((curr) => curr.filter((t) => t.id !== id));
-    }, 3500);
-  };
-
-  const handleDismissToast = (id) => {
-    setToasts((curr) => curr.filter((t) => t.id !== id));
+    if (type === 'success') {
+      toast.success(message, { title });
+    } else if (type === 'error') {
+      toast.error(message, { title });
+    } else if (type === 'warning') {
+      toast.warning(message, { title });
+    } else if (type === 'info') {
+      toast.info(message, { title });
+    } else if (type === 'loading') {
+      return toast.loading(message, { title });
+    } else {
+      toast({
+        type: type === 'delete' ? 'warning' : type,
+        title: title || (type === 'delete' ? 'Deleted' : 'Notice'),
+        description: message,
+      });
+    }
   };
 
   const loadTrafficData = async (scope = trafficScope, projId = currentProject?.id) => {
@@ -363,162 +370,188 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-black text-neutral-100 font-sans antialiased">
-      {/* Sidebar Navigation */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
-        serviceStatus={serviceStatus}
-      />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-black">
-        {/* Top Header */}
-        <Header
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex h-screen w-screen overflow-hidden bg-black text-neutral-100 font-sans antialiased">
+        {/* Sidebar Navigation using real shadcn Sidebar components */}
+        <AppSidebar
           activeTab={activeTab}
-          projects={projects}
-          currentProject={currentProject}
-          onSelectProject={handleSelectProject}
-          onCreateProjectClick={() => setActiveTab('projects')}
-          onRegisterApiClick={() => setActiveTab('register-api')}
-          onRefreshData={handleManualRefresh}
-          isRefreshing={isRefreshing}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+          setActiveTab={setActiveTab}
+          serviceStatus={serviceStatus}
+          onOpenKeys={() => {
+            if (apis.length > 0) setKeysApi(apis[0]);
+            else setActiveTab('apis');
+          }}
         />
 
-        {/* Dynamic Views */}
-        <main className="flex-1 overflow-y-auto p-5">
-          {activeTab === 'overview' && (
-            <OverviewView
-              apis={apis}
-              projects={projects}
-              currentProject={currentProject}
-              trafficRecords={trafficRecords}
-              trafficStats={trafficStats}
-              serviceStatus={serviceStatus}
-              onNavigate={(tab) => setActiveTab(tab)}
-              onOpenConsole={() => {
-                if (apis.length > 0) setConsoleApi(apis[0]);
-                else setActiveTab('register-api');
-              }}
-              onRegisterApi={() => setActiveTab('register-api')}
-            />
-          )}
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-black">
+          {/* Top Header */}
+          <AppHeader
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            projects={projects}
+            currentProject={currentProject}
+            onSelectProject={handleSelectProject}
+            onCreateProjectClick={() => setActiveTab('projects')}
+            onRegisterApiClick={() => setActiveTab('register-api')}
+            onRefreshData={handleManualRefresh}
+            isRefreshing={isRefreshing}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            trafficScope={trafficScope}
+            setTrafficScope={setTrafficScope}
+            securityEvents={securityEvents}
+          />
 
-          {activeTab === 'projects' && (
-            <ProjectsView
-              projects={projects}
-              currentProject={currentProject}
-              onSelectProject={handleSelectProject}
-              onCreateProject={handleCreateProject}
-              onUpdateProject={handleUpdateProject}
-              onDeleteProject={handleDeleteProject}
-              apis={allApis.length > 0 ? allApis : apis}
-              onNavigate={(tab) => setActiveTab(tab)}
-            />
-          )}
+          {/* Dynamic Views */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-black">
+            {activeTab === 'overview' && (
+              <OverviewView
+                apis={apis}
+                projects={projects}
+                currentProject={currentProject}
+                trafficRecords={trafficRecords}
+                trafficStats={trafficStats}
+                serviceStatus={serviceStatus}
+                securityEvents={securityEvents}
+                onNavigate={(tab) => setActiveTab(tab)}
+                onOpenConsole={() => {
+                  if (apis.length > 0) setConsoleApi(apis[0]);
+                  else setActiveTab('register-api');
+                }}
+                onRegisterApi={() => setActiveTab('register-api')}
+                onSelectProject={handleSelectProject}
+                onCreateProject={() => setActiveTab('projects')}
+                onOpenKeys={() => {
+                  if (apis.length > 0) setKeysApi(apis[0]);
+                  else setActiveTab('apis');
+                }}
+              />
+            )}
 
-          {activeTab === 'apis' && (
-            <ApisView
-              apis={apis}
-              currentProject={currentProject}
-              onRegisterApiClick={() => setActiveTab('register-api')}
-              onOpenKeysModal={(api) => setKeysApi(api)}
-              onOpenConsoleModal={(api) => setConsoleApi(api)}
-              onOpenDetailsModal={(api) => setDetailsApi(api)}
-              onOpenEditModal={(api) => setDetailsApi(api)}
-              onTestConnectivity={handleTestConnectivity}
-              onToggleStatus={handleToggleApiStatus}
-              onDeleteApi={handleDeleteApi}
-              searchQuery={searchQuery}
-              showToast={showToast}
-            />
-          )}
+            {activeTab === 'projects' && (
+              <ProjectsView
+                projects={projects}
+                currentProject={currentProject}
+                onSelectProject={handleSelectProject}
+                onCreateProject={handleCreateProject}
+                onUpdateProject={handleUpdateProject}
+                onDeleteProject={handleDeleteProject}
+                apis={allApis.length > 0 ? allApis : apis}
+                onNavigate={(tab) => setActiveTab(tab)}
+              />
+            )}
 
-          {activeTab === 'register-api' && (
-            <RegisterApiView
-              projects={projects}
-              currentProject={currentProject}
-              onSelectProject={handleSelectProject}
-              onApiRegistered={handleApiRegistered}
-              onNavigate={(tab) => setActiveTab(tab)}
-              showToast={showToast}
-            />
-          )}
+            {activeTab === 'apis' && (
+              <ApisView
+                apis={apis}
+                currentProject={currentProject}
+                onRegisterApiClick={() => setActiveTab('register-api')}
+                onOpenKeysModal={(api) => setKeysApi(api)}
+                onOpenConsoleModal={(api) => setConsoleApi(api)}
+                onOpenDetailsModal={(api) => setDetailsApi(api)}
+                onOpenEditModal={(api) => setDetailsApi(api)}
+                onTestConnectivity={handleTestConnectivity}
+                onToggleStatus={handleToggleApiStatus}
+                onDeleteApi={handleDeleteApi}
+                searchQuery={searchQuery}
+                showToast={showToast}
+              />
+            )}
 
-          {activeTab === 'traffic' && (
-            <TrafficMonitoringView
-              trafficRecords={trafficRecords}
-              trafficStats={trafficStats}
-              apis={apis}
-              currentProject={currentProject}
-              trafficScope={trafficScope}
-              setTrafficScope={setTrafficScope}
-              onRefresh={loadAllData}
-              isRefreshing={isRefreshing}
-              autoRefresh={autoRefreshTraffic}
-              setAutoRefresh={setAutoRefreshTraffic}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-            />
-          )}
+            {activeTab === 'register-api' && (
+              <RegisterApiView
+                projects={projects}
+                currentProject={currentProject}
+                onSelectProject={handleSelectProject}
+                onApiRegistered={handleApiRegistered}
+                onNavigate={(tab) => setActiveTab(tab)}
+                showToast={showToast}
+              />
+            )}
 
-          {activeTab === 'policies' && (
-            <SecurityPoliciesView
-              onNavigate={(tab) => setActiveTab(tab)}
-            />
-          )}
+            {activeTab === 'traffic' && (
+              <TrafficMonitoringView
+                trafficRecords={trafficRecords}
+                trafficStats={trafficStats}
+                apis={apis}
+                currentProject={currentProject}
+                trafficScope={trafficScope}
+                setTrafficScope={setTrafficScope}
+                onRefresh={loadAllData}
+                isRefreshing={isRefreshing}
+                autoRefresh={autoRefreshTraffic}
+                setAutoRefresh={setAutoRefreshTraffic}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+              />
+            )}
 
-          {activeTab === 'settings' && (
-            <SettingsView
-              serviceStatus={serviceStatus}
-              onRunDiagnostics={handleRunDiagnostics}
-              isRunningDiagnostics={isRunningDiagnostics}
-              showToast={showToast}
-            />
-          )}
+            {activeTab === 'incidents' && (
+              <IncidentsView
+                securityEvents={securityEvents}
+                currentProject={currentProject}
+                onRefresh={loadAllData}
+                isRefreshing={isRefreshing}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                onNavigate={(tab) => setActiveTab(tab)}
+              />
+            )}
 
-          {activeTab === 'help' && (
-            <HelpView showToast={showToast} />
-          )}
-        </main>
+            {activeTab === 'policies' && (
+              <SecurityPoliciesView
+                onNavigate={(tab) => setActiveTab(tab)}
+              />
+            )}
+
+            {activeTab === 'settings' && (
+              <SettingsView
+                serviceStatus={serviceStatus}
+                onRunDiagnostics={handleRunDiagnostics}
+                isRunningDiagnostics={isRunningDiagnostics}
+                showToast={showToast}
+              />
+            )}
+
+            {activeTab === 'help' && (
+              <HelpView showToast={showToast} />
+            )}
+          </main>
+        </div>
+
+        {/* API Details Modal */}
+        <ApiDetailsModal
+          api={detailsApi}
+          isOpen={Boolean(detailsApi)}
+          onClose={() => setDetailsApi(null)}
+          onOpenKeysModal={(api) => setKeysApi(api)}
+          onOpenConsoleModal={(api) => setConsoleApi(api)}
+          onToggleStatus={handleToggleApiStatus}
+          onDeleteApi={handleDeleteApi}
+          showToast={showToast}
+        />
+
+        {/* Key Management Modal */}
+        <KeyManagementModal
+          api={keysApi}
+          isOpen={Boolean(keysApi)}
+          onClose={() => setKeysApi(null)}
+          showToast={showToast}
+        />
+
+        {/* Interactive Gateway Console Modal */}
+        <ConsoleModal
+          api={consoleApi}
+          isOpen={Boolean(consoleApi)}
+          onClose={() => setConsoleApi(null)}
+          onTrafficGenerated={loadAllData}
+          showToast={showToast}
+        />
+
+        {/* shadcn Toast Notification Stack */}
+        <Toaster />
       </div>
-
-
-      {/* API Details Modal */}
-      <ApiDetailsModal
-        api={detailsApi}
-        isOpen={Boolean(detailsApi)}
-        onClose={() => setDetailsApi(null)}
-        onOpenKeysModal={(api) => setKeysApi(api)}
-        onOpenConsoleModal={(api) => setConsoleApi(api)}
-        onToggleStatus={handleToggleApiStatus}
-        onDeleteApi={handleDeleteApi}
-        showToast={showToast}
-      />
-
-      {/* Key Management Modal */}
-      <KeyManagementModal
-        api={keysApi}
-        isOpen={Boolean(keysApi)}
-        onClose={() => setKeysApi(null)}
-        showToast={showToast}
-      />
-
-      {/* Interactive Gateway Console Modal */}
-      <ConsoleModal
-        api={consoleApi}
-        isOpen={Boolean(consoleApi)}
-        onClose={() => setConsoleApi(null)}
-        onTrafficGenerated={loadAllData}
-        showToast={showToast}
-      />
-
-      {/* Toast Notification Stack */}
-      <ToastContainer toasts={toasts} onDismiss={handleDismissToast} />
-    </div>
+    </SidebarProvider>
   );
 }

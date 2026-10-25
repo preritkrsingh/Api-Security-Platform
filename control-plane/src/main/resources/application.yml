@@ -21,6 +21,9 @@ spring:
 platform:
   security:
     allow-local-development: ${ALLOW_LOCAL_DEVELOPMENT:true}
+    jwt:
+      secret: ${JWT_SECRET:veyrion_dev_jwt_secret_signing_key_32_characters_minimum}
+      expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 management:
   endpoints:

@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Pagination({
   currentPage = 1,
@@ -34,31 +35,33 @@ export default function Pagination({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-neutral-800/80 text-xs">
-      <div className="text-neutral-400 font-mono text-[11px]">
-        Showing <span className="text-white font-medium">{startItem}</span> -{' '}
-        <span className="text-white font-medium">{endItem}</span> of{' '}
-        <span className="text-white font-medium">{totalItems}</span>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border text-xs">
+      <div className="text-muted-foreground font-mono text-[11px]">
+        Showing <span className="text-foreground font-medium">{startItem}</span> -{' '}
+        <span className="text-foreground font-medium">{endItem}</span> of{' '}
+        <span className="text-foreground font-medium">{totalItems}</span>
       </div>
 
       <div className="flex items-center gap-1.5">
         {/* Previous Button */}
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-neutral-800 bg-[#0c0c0e] hover:bg-neutral-900 text-neutral-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-medium btn-click"
+          className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
           title="Previous Page"
         >
-          <ChevronLeft className="w-3.5 h-3.5" />
+          <ChevronLeft className="w-3.5 h-3.5 mr-1" />
           <span className="hidden sm:inline">Prev</span>
-        </button>
+        </Button>
 
         {/* Page Number Pills */}
         <div className="flex items-center gap-1">
           {getPageNumbers().map((p, idx) => {
             if (p === '...') {
               return (
-                <span key={`dots-${idx}`} className="px-2 text-neutral-500 font-mono">
+                <span key={`dots-${idx}`} className="px-1.5 text-muted-foreground font-mono">
                   &hellip;
                 </span>
               );
@@ -66,31 +69,33 @@ export default function Pagination({
 
             const isCurrent = p === currentPage;
             return (
-              <button
+              <Button
                 key={p}
+                size="sm"
+                variant={isCurrent ? 'default' : 'ghost'}
                 onClick={() => onPageChange(p)}
-                className={`w-7 h-7 rounded-lg text-xs font-mono font-medium transition-colors btn-click ${
-                  isCurrent
-                    ? 'bg-white text-black font-bold shadow-sm'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                className={`w-7 h-7 p-0 text-xs font-mono font-medium ${
+                  isCurrent ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {p}
-              </button>
+              </Button>
             );
           })}
         </div>
 
         {/* Next Button */}
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-neutral-800 bg-[#0c0c0e] hover:bg-neutral-900 text-neutral-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-medium btn-click"
+          className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
           title="Next Page"
         >
           <span className="hidden sm:inline">Next</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+          <ChevronRight className="w-3.5 h-3.5 ml-1" />
+        </Button>
       </div>
     </div>
   );

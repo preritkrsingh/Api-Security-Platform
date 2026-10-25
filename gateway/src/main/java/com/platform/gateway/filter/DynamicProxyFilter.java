@@ -7,11 +7,13 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.UUID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.gateway.dto.GatewayApiConfig;
 import com.platform.gateway.service.ControlPlaneConfigClient;
+import com.platform.gateway.service.JwtService;
 import com.platform.gateway.service.RateLimiterService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +41,15 @@ public class DynamicProxyFilter implements GlobalFilter, Ordered {
 
     private final ControlPlaneConfigClient configClient;
     private final RateLimiterService rateLimiterService;
+    private final JwtService jwtService;
 
     public DynamicProxyFilter(
             ControlPlaneConfigClient configClient,
-            RateLimiterService rateLimiterService) {
+            RateLimiterService rateLimiterService,
+            JwtService jwtService) {
         this.configClient = configClient;
         this.rateLimiterService = rateLimiterService;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -77,43 +82,75 @@ public class DynamicProxyFilter implements GlobalFilter, Ordered {
 
         if (apiId.isBlank()) {
             return writeErrorResponse(exchange, HttpStatus.NOT_FOUND, "API_NOT_FOUND",
-                    "No API ID specified in proxy path.");
+                    "No API ID specified in proxy path.", null, null);
         }
 
         if ("actuator".equalsIgnoreCase(apiId) || "health".equalsIgnoreCase(apiId)) {
             return writeHealthResponse(exchange);
         }
 
+        // Extract or generate unique request/correlation ID
+        String incomingReqId = exchange.getRequest().getHeaders().getFirst("X-Request-ID");
+        String requestId = (incomingReqId != null && !incomingReqId.isBlank())
+                ? incomingReqId.trim()
+                : "req_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+
         long startTime = System.currentTimeMillis();
 
         return configClient.getApiConfig(apiId)
                 .switchIfEmpty(Mono.defer(() ->
                     writeErrorResponse(exchange, HttpStatus.NOT_FOUND, "API_NOT_FOUND",
-                            "Registered API '" + apiId + "' was not found or is no longer configured.")
+                            "Registered API '" + apiId + "' was not found or is no longer configured.", requestId, null)
                         .then(Mono.empty())
                 ))
-                .flatMap(config -> handleProxyRequest(exchange, chain, config, apiId, subpath, startTime));
+                .flatMap(config -> handleProxyRequest(exchange, chain, config, apiId, subpath, startTime, requestId));
     }
 
     private Mono<Void> handleProxyRequest(ServerWebExchange exchange, GatewayFilterChain chain,
-                                         GatewayApiConfig config, String apiId, String subpath, long startTime) {
+                                          GatewayApiConfig config, String apiId, String subpath,
+                                          long startTime, String requestId) {
         // 1. Status Check
         if (config.status() == null || !"ACTIVE".equalsIgnoreCase(config.status())) {
             return writeBlockedResponse(exchange, HttpStatus.FORBIDDEN, "API_INACTIVE",
-                    "This registered API is currently disabled or inactive.", apiId, subpath, startTime);
+                    "This registered API is currently disabled or inactive.", apiId, subpath, startTime, requestId, null);
         }
 
-        // 2. Authentication Check
-        String apiKey = resolveApiKey(exchange.getRequest());
-        if (apiKey == null || apiKey.isBlank()) {
+        // 2. Authentication Check (Supports both API Key and JWT Token)
+        String rawCredential = resolveApiKey(exchange.getRequest());
+        if (rawCredential == null || rawCredential.isBlank()) {
             return writeBlockedResponse(exchange, HttpStatus.UNAUTHORIZED, "MISSING_API_KEY",
-                    "A valid 'X-API-Key' header is required to access this protected API.", apiId, subpath, startTime);
+                    "A valid 'X-API-Key' header or Bearer JWT token is required to access this protected API.",
+                    apiId, subpath, startTime, requestId, null);
         }
 
-        String keyHash = hashKey(apiKey);
-        if (config.activeKeyHashes() == null || !config.activeKeyHashes().contains(keyHash)) {
-            return writeBlockedResponse(exchange, HttpStatus.UNAUTHORIZED, "INVALID_API_KEY",
-                    "The provided API key is invalid or has been revoked.", apiId, subpath, startTime);
+        boolean authenticated = false;
+        String authMethod = "NONE";
+
+        if (jwtService.isJwtToken(rawCredential)) {
+            JwtService.JwtValidationResult jwtResult = jwtService.validateToken(rawCredential);
+            if (jwtResult.valid()) {
+                authenticated = true;
+                authMethod = "JWT";
+            } else {
+                return writeBlockedResponse(exchange, HttpStatus.UNAUTHORIZED, jwtResult.errorCode(),
+                        jwtResult.errorMessage(), apiId, subpath, startTime, requestId, null);
+            }
+        } else {
+            // API Key verification
+            String keyHash = hashKey(rawCredential);
+            if (config.activeKeyHashes() != null && config.activeKeyHashes().contains(keyHash)) {
+                authenticated = true;
+                authMethod = "API_KEY";
+            } else {
+                return writeBlockedResponse(exchange, HttpStatus.UNAUTHORIZED, "INVALID_API_KEY",
+                        "The provided API key is invalid or has been revoked.",
+                        apiId, subpath, startTime, requestId, null);
+            }
+        }
+
+        if (!authenticated) {
+            return writeBlockedResponse(exchange, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED",
+                    "Authentication failed.", apiId, subpath, startTime, requestId, null);
         }
 
         // 3. HTTP Method Enforcement
@@ -121,14 +158,16 @@ public class DynamicProxyFilter implements GlobalFilter, Ordered {
         if (config.allowedMethods() != null && !config.allowedMethods().isEmpty()
                 && !config.allowedMethods().contains(method)) {
             return writeBlockedResponse(exchange, HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED",
-                    "HTTP method '" + method + "' is not permitted for this API. Allowed: " + config.allowedMethods(), apiId, subpath, startTime);
+                    "HTTP method '" + method + "' is not permitted for this API. Allowed: " + config.allowedMethods(),
+                    apiId, subpath, startTime, requestId, null);
         }
 
         // 4. Path Prefix Enforcement
         String prefix = config.allowedPathPrefix() != null ? config.allowedPathPrefix() : "/";
         if (!prefix.equals("/") && !subpath.startsWith(prefix)) {
             return writeBlockedResponse(exchange, HttpStatus.FORBIDDEN, "PATH_PREFIX_FORBIDDEN",
-                    "Request path '" + subpath + "' does not match allowed prefix '" + prefix + "'.", apiId, subpath, startTime);
+                    "Request path '" + subpath + "' does not match allowed prefix '" + prefix + "'.",
+                    apiId, subpath, startTime, requestId, null);
         }
 
         // 5. Request Body Size Enforcement
@@ -136,69 +175,82 @@ public class DynamicProxyFilter implements GlobalFilter, Ordered {
         long maxBytes = config.maxRequestBodyBytes() != null ? config.maxRequestBodyBytes() : 1048576L;
         if (contentLength > maxBytes) {
             return writeBlockedResponse(exchange, HttpStatus.PAYLOAD_TOO_LARGE, "PAYLOAD_TOO_LARGE",
-                    "Request content length (" + contentLength + " bytes) exceeds maximum permitted size of " + maxBytes + " bytes.", apiId, subpath, startTime);
+                    "Request content length (" + contentLength + " bytes) exceeds maximum permitted size of " + maxBytes + " bytes.",
+                    apiId, subpath, startTime, requestId, null);
         }
 
-        // 6. Rate Limiting
+        // 6. Rate Limiting (Redis-backed with in-memory fallback & rate limit headers)
         int rps = config.rateLimitRps() != null ? config.rateLimitRps() : 100;
-        if (!rateLimiterService.tryAcquire(apiId, rps)) {
-            return writeBlockedResponse(exchange, HttpStatus.TOO_MANY_REQUESTS, "RATE_LIMIT_EXCEEDED",
-                    "Rate limit exceeded for this API. Configured limit: " + rps + " req/sec.", apiId, subpath, startTime);
-        }
-
-        // 7. Dynamic URI Rewriting & Stripping Secret Headers
-        String upstreamBase = config.upstreamBaseUrl().replaceAll("/+$", "");
-        String targetUrl = upstreamBase + subpath;
-        String query = exchange.getRequest().getURI().getRawQuery();
-        if (query != null && !query.isBlank()) {
-            targetUrl += "?" + query;
-        }
-
-        URI targetUri = URI.create(targetUrl);
-
-        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                .uri(targetUri)
-                .path(subpath)
-                .headers(h -> h.remove("X-API-Key"))
-                .build();
-
-        ServerWebExchange mutatedExchange = exchange.mutate()
-                .request(mutatedRequest)
-                .build();
-
-        mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, targetUri);
-
-        // Deduplicate CORS origin header if downstream also attaches one
-        mutatedExchange.getResponse().beforeCommit(() -> {
-            HttpHeaders headers = mutatedExchange.getResponse().getHeaders();
-            java.util.List<String> origins = headers.get(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN);
-            if (origins != null && origins.size() > 1) {
-                headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origins.get(0));
+        return rateLimiterService.tryAcquire(apiId, rps).flatMap(rateLimitResult -> {
+            if (!rateLimitResult.allowed()) {
+                return writeBlockedResponse(exchange, HttpStatus.TOO_MANY_REQUESTS, "RATE_LIMIT_EXCEEDED",
+                        "Rate limit exceeded for this API. Configured limit: " + rps + " req/sec.",
+                        apiId, subpath, startTime, requestId, rateLimitResult);
             }
-            return Mono.empty();
+
+            // 7. Dynamic URI Rewriting & Stripping Secret Headers
+            String upstreamBase = config.upstreamBaseUrl().replaceAll("/+$", "");
+            String targetUrl = upstreamBase + subpath;
+            String query = exchange.getRequest().getURI().getRawQuery();
+            if (query != null && !query.isBlank()) {
+                targetUrl += "?" + query;
+            }
+
+            URI targetUri = URI.create(targetUrl);
+
+            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                    .uri(targetUri)
+                    .path(subpath)
+                    .headers(h -> {
+                        h.remove("X-API-Key");
+                        h.set("X-Request-ID", requestId);
+                    })
+                    .build();
+
+            ServerWebExchange mutatedExchange = exchange.mutate()
+                    .request(mutatedRequest)
+                    .build();
+
+            mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, targetUri);
+
+            // Attach standard rate limit headers, correlation ID, and deduplicate CORS
+            mutatedExchange.getResponse().beforeCommit(() -> {
+                HttpHeaders headers = mutatedExchange.getResponse().getHeaders();
+                headers.set("X-Request-ID", requestId);
+                headers.set("X-RateLimit-Limit", String.valueOf(rateLimitResult.limit()));
+                headers.set("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining()));
+                headers.set("X-RateLimit-Reset", String.valueOf(rateLimitResult.resetSeconds()));
+
+                java.util.List<String> origins = headers.get(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN);
+                if (origins != null && origins.size() > 1) {
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origins.get(0));
+                }
+                return Mono.empty();
+            });
+
+            // Execute request and collect safe traffic telemetry upon completion
+            return chain.filter(mutatedExchange).then(Mono.fromRunnable(() -> {
+                long duration = System.currentTimeMillis() - startTime;
+                int statusCode = mutatedExchange.getResponse().getStatusCode() != null
+                        ? mutatedExchange.getResponse().getStatusCode().value() : 0;
+                long reqSize = mutatedRequest.getHeaders().getContentLength();
+                long respSize = mutatedExchange.getResponse().getHeaders().getContentLength();
+
+                Map<String, Object> telemetry = Map.of(
+                        "apiId", apiId,
+                        "requestId", requestId,
+                        "httpMethod", method,
+                        "path", subpath,
+                        "clientIp", resolveClientIp(mutatedRequest),
+                        "statusCode", statusCode,
+                        "durationMs", duration,
+                        "requestSize", reqSize >= 0 ? reqSize : 0L,
+                        "responseSize", respSize >= 0 ? respSize : 0L,
+                        "status", statusCode < 400 ? "SUCCESS" : "ERROR"
+                );
+                configClient.reportTraffic(telemetry);
+            }));
         });
-
-        // Execute request and collect safe traffic telemetry upon completion
-        return chain.filter(mutatedExchange).then(Mono.fromRunnable(() -> {
-            long duration = System.currentTimeMillis() - startTime;
-            int statusCode = mutatedExchange.getResponse().getStatusCode() != null
-                    ? mutatedExchange.getResponse().getStatusCode().value() : 0;
-            long reqSize = mutatedRequest.getHeaders().getContentLength();
-            long respSize = mutatedExchange.getResponse().getHeaders().getContentLength();
-
-            Map<String, Object> telemetry = Map.of(
-                    "apiId", apiId,
-                    "httpMethod", method,
-                    "path", subpath,
-                    "clientIp", resolveClientIp(mutatedRequest),
-                    "statusCode", statusCode,
-                    "durationMs", duration,
-                    "requestSize", reqSize >= 0 ? reqSize : 0L,
-                    "responseSize", respSize >= 0 ? respSize : 0L,
-                    "status", statusCode < 400 ? "SUCCESS" : "ERROR"
-            );
-            configClient.reportTraffic(telemetry);
-        }));
     }
 
     private String resolveApiKey(ServerHttpRequest request) {
@@ -224,12 +276,14 @@ public class DynamicProxyFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> writeBlockedResponse(ServerWebExchange exchange, HttpStatus status, String errorCode,
-                                           String message, String apiId, String subpath, long startTime) {
+                                           String message, String apiId, String subpath, long startTime,
+                                           String requestId, RateLimiterService.RateLimitResult rateLimitResult) {
         if (apiId != null && !apiId.isBlank()) {
             long duration = startTime > 0 ? System.currentTimeMillis() - startTime : 0;
             long reqSize = exchange.getRequest().getHeaders().getContentLength();
             Map<String, Object> telemetry = Map.of(
                     "apiId", apiId,
+                    "requestId", requestId != null ? requestId : "",
                     "httpMethod", exchange.getRequest().getMethod().name(),
                     "path", subpath != null ? subpath : exchange.getRequest().getURI().getPath(),
                     "clientIp", resolveClientIp(exchange.getRequest()),
@@ -241,16 +295,31 @@ public class DynamicProxyFilter implements GlobalFilter, Ordered {
             );
             configClient.reportTraffic(telemetry);
         }
-        return writeErrorResponse(exchange, status, errorCode, message);
+        return writeErrorResponse(exchange, status, errorCode, message, requestId, rateLimitResult);
     }
 
-    private Mono<Void> writeErrorResponse(ServerWebExchange exchange, HttpStatus status, String errorCode, String message) {
+    private Mono<Void> writeErrorResponse(ServerWebExchange exchange, HttpStatus status, String errorCode,
+                                         String message, String requestId,
+                                         RateLimiterService.RateLimitResult rateLimitResult) {
         ServerHttpResponse response = exchange.getResponse();
         if (response.isCommitted()) {
             return Mono.empty();
         }
         response.setStatusCode(status);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        if (requestId != null && !requestId.isBlank()) {
+            response.getHeaders().set("X-Request-ID", requestId);
+        }
+
+        if (rateLimitResult != null) {
+            response.getHeaders().set("X-RateLimit-Limit", String.valueOf(rateLimitResult.limit()));
+            response.getHeaders().set("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining()));
+            response.getHeaders().set("X-RateLimit-Reset", String.valueOf(rateLimitResult.resetSeconds()));
+            if (status == HttpStatus.TOO_MANY_REQUESTS) {
+                response.getHeaders().set("Retry-After", "1");
+            }
+        }
 
         Map<String, Object> errorPayload = Map.of(
                 "error", errorCode,

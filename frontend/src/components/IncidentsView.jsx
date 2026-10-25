@@ -2,29 +2,36 @@ import React, { useState } from 'react';
 import {
   ShieldAlert,
   Search,
-  Filter,
-  CheckCircle2,
   AlertOctagon,
   AlertTriangle,
   Info,
-  Clock,
-  ArrowUpDown,
-  ExternalLink,
   ChevronDown,
   ChevronRight,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  ArrowRight,
 } from 'lucide-react';
 import Pagination from './Pagination';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell
+} from '@/components/ui/table';
 
 export default function IncidentsView({
   securityEvents = [],
-  currentProject,
+  currentProject: _currentProject,
   onRefresh,
   isRefreshing,
   searchQuery = '',
   setSearchQuery,
-  onNavigate
+  onNavigate,
 }) {
   const [severityFilter, setSeverityFilter] = useState('ALL');
   const [threatTypeFilter, setThreatTypeFilter] = useState('ALL');
@@ -34,22 +41,24 @@ export default function IncidentsView({
 
   // Extract unique threat types
   const threatTypes = Array.from(
-    new Set(securityEvents.map((e) => e.threatType).filter(Boolean))
+    new Set(securityEvents.map((e) => e.threatType || e.eventType).filter(Boolean))
   );
 
   const filteredEvents = securityEvents.filter((evt) => {
     if (severityFilter !== 'ALL' && evt.severity !== severityFilter) {
       return false;
     }
-    if (threatTypeFilter !== 'ALL' && evt.threatType !== threatTypeFilter) {
+    const type = evt.threatType || evt.eventType;
+    if (threatTypeFilter !== 'ALL' && type !== threatTypeFilter) {
       return false;
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
-        (evt.threatType && evt.threatType.toLowerCase().includes(q)) ||
+        (type && type.toLowerCase().includes(q)) ||
         (evt.clientIp && evt.clientIp.toLowerCase().includes(q)) ||
         (evt.uriPath && evt.uriPath.toLowerCase().includes(q)) ||
+        (evt.path && evt.path.toLowerCase().includes(q)) ||
         (evt.details && evt.details.toLowerCase().includes(q))
       );
     }
@@ -61,7 +70,7 @@ export default function IncidentsView({
   const criticalCount = securityEvents.filter((e) => e.severity === 'CRITICAL').length;
   const highCount = securityEvents.filter((e) => e.severity === 'HIGH').length;
   const mediumCount = securityEvents.filter((e) => e.severity === 'MEDIUM').length;
-  const lowCount = securityEvents.filter((e) => e.severity === 'LOW').length;
+  const lowCount = securityEvents.filter((e) => e.severity === 'LOW' || e.severity === 'INFO').length;
 
   const formatTimestamp = (ts) => {
     if (!ts) return '-';
@@ -81,48 +90,50 @@ export default function IncidentsView({
   };
 
   return (
-    <div className="space-y-4 animate-fade-in text-white">
+    <div className="space-y-4 animate-page-enter text-white">
       {/* Top Header & Audit Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-neutral-800/80">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800/80">
         <div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-base font-semibold text-white tracking-tight">
-              Threats & Security Incidents
+            <h2 className="text-base font-semibold text-zinc-100 tracking-tight">
+              Security Incidents & Intercepts
             </h2>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-neutral-900 text-neutral-300 border border-neutral-800">
-              {securityEvents.length} Incidents Logged
-            </span>
+            <Badge variant="outline" className="text-[10px] border-zinc-800 bg-zinc-900 text-zinc-400 font-mono py-0 px-1.5">
+              {securityEvents.length} INCIDENTS
+            </Badge>
           </div>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Audit log of perimeter blocks, credential stuffing, rate-limit triggers, and malicious ingress.
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Audit log of perimeter blocks, cryptographic auth mismatches, and token-bucket mitigations
           </p>
         </div>
 
-        <button
+        <Button
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-neutral-800 bg-[#08080a] hover:bg-neutral-900 text-neutral-300 hover:text-white text-xs font-medium transition-colors disabled:opacity-50 btn-click"
+          variant="outline"
+          size="sm"
+          className="h-7 px-2.5 gap-1.5 text-xs border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white hover:bg-zinc-800 shadow-none"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-white' : ''}`} />
-          <span>Refresh Feed</span>
-        </button>
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </Button>
       </div>
 
-      {/* Severity Triage KPI Cards (Minimal Cards with rounded corners) */}
+      {/* Severity Triage KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button
           onClick={() => {
             setSeverityFilter(severityFilter === 'CRITICAL' ? 'ALL' : 'CRITICAL');
             setCurrentPage(1);
           }}
-          className={`p-3.5 rounded-2xl border text-left transition-all btn-click ${
+          className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
             severityFilter === 'CRITICAL'
-              ? 'bg-rose-950/20 border-rose-500/50 shadow-md ring-1 ring-rose-500/30'
-              : 'bg-[#08080a] border-neutral-800/80 hover:border-neutral-700/80'
+              ? 'bg-rose-950/30 border-rose-800/70'
+              : 'bg-zinc-950 border-zinc-800/80 hover:border-zinc-700'
           }`}
         >
-          <div className="flex items-center justify-between text-neutral-400">
-            <span className="text-xs font-medium">Critical</span>
+          <div className="flex items-center justify-between text-zinc-400">
+            <span className="text-[11px] font-medium uppercase tracking-wider font-mono">Critical</span>
             <AlertOctagon className="w-4 h-4 text-rose-500" />
           </div>
           <div className="mt-1 text-xl font-bold font-mono text-rose-400">{criticalCount}</div>
@@ -133,14 +144,14 @@ export default function IncidentsView({
             setSeverityFilter(severityFilter === 'HIGH' ? 'ALL' : 'HIGH');
             setCurrentPage(1);
           }}
-          className={`p-3.5 rounded-2xl border text-left transition-all btn-click ${
+          className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
             severityFilter === 'HIGH'
-              ? 'bg-amber-950/20 border-amber-500/50 shadow-md ring-1 ring-amber-500/30'
-              : 'bg-[#08080a] border-neutral-800/80 hover:border-neutral-700/80'
+              ? 'bg-amber-950/30 border-amber-800/70'
+              : 'bg-zinc-950 border-zinc-800/80 hover:border-zinc-700'
           }`}
         >
-          <div className="flex items-center justify-between text-neutral-400">
-            <span className="text-xs font-medium">High Severity</span>
+          <div className="flex items-center justify-between text-zinc-400">
+            <span className="text-[11px] font-medium uppercase tracking-wider font-mono">High</span>
             <AlertTriangle className="w-4 h-4 text-amber-500" />
           </div>
           <div className="mt-1 text-xl font-bold font-mono text-amber-400">{highCount}</div>
@@ -151,17 +162,17 @@ export default function IncidentsView({
             setSeverityFilter(severityFilter === 'MEDIUM' ? 'ALL' : 'MEDIUM');
             setCurrentPage(1);
           }}
-          className={`p-3.5 rounded-2xl border text-left transition-all btn-click ${
+          className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
             severityFilter === 'MEDIUM'
-              ? 'bg-yellow-950/20 border-yellow-500/50 shadow-md ring-1 ring-yellow-500/30'
-              : 'bg-[#08080a] border-neutral-800/80 hover:border-neutral-700/80'
+              ? 'bg-purple-950/30 border-purple-800/70'
+              : 'bg-zinc-950 border-zinc-800/80 hover:border-zinc-700'
           }`}
         >
-          <div className="flex items-center justify-between text-neutral-400">
-            <span className="text-xs font-medium">Medium</span>
-            <AlertTriangle className="w-4 h-4 text-yellow-500" />
+          <div className="flex items-center justify-between text-zinc-400">
+            <span className="text-[11px] font-medium uppercase tracking-wider font-mono">Medium</span>
+            <AlertTriangle className="w-4 h-4 text-purple-400" />
           </div>
-          <div className="mt-1 text-xl font-bold font-mono text-yellow-400">{mediumCount}</div>
+          <div className="mt-1 text-xl font-bold font-mono text-purple-400">{mediumCount}</div>
         </button>
 
         <button
@@ -169,14 +180,14 @@ export default function IncidentsView({
             setSeverityFilter(severityFilter === 'LOW' ? 'ALL' : 'LOW');
             setCurrentPage(1);
           }}
-          className={`p-3.5 rounded-2xl border text-left transition-all btn-click ${
+          className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
             severityFilter === 'LOW'
-              ? 'bg-blue-950/20 border-blue-500/50 shadow-md ring-1 ring-blue-500/30'
-              : 'bg-[#08080a] border-neutral-800/80 hover:border-neutral-700/80'
+              ? 'bg-sky-950/30 border-sky-800/70'
+              : 'bg-zinc-950 border-zinc-800/80 hover:border-zinc-700'
           }`}
         >
-          <div className="flex items-center justify-between text-neutral-400">
-            <span className="text-xs font-medium">Low / Informational</span>
+          <div className="flex items-center justify-between text-zinc-400">
+            <span className="text-[11px] font-medium uppercase tracking-wider font-mono">Informational</span>
             <Info className="w-4 h-4 text-sky-400" />
           </div>
           <div className="mt-1 text-xl font-bold font-mono text-sky-400">{lowCount}</div>
@@ -184,171 +195,166 @@ export default function IncidentsView({
       </div>
 
       {/* Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-2xl border border-neutral-800/80 bg-[#08080a] text-xs">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-neutral-400 font-medium">Threat Type:</span>
-          <select
-            value={threatTypeFilter}
-            onChange={(e) => {
-              setThreatTypeFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="bg-[#050507] border border-neutral-800 rounded-xl px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-indigo-500"
-          >
-            <option value="ALL">All Threat Signatures</option>
-            {threatTypes.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {severityFilter !== 'ALL' && (
-            <button
-              onClick={() => {
-                setSeverityFilter('ALL');
+      <Card className="border-zinc-800/80 bg-zinc-950 shadow-none">
+        <CardContent className="p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-zinc-500 font-medium">Signature:</span>
+            <select
+              value={threatTypeFilter}
+              onChange={(e) => {
+                setThreatTypeFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="text-xs text-neutral-400 hover:text-white underline"
+              className="bg-zinc-900 border border-zinc-800 rounded-md px-2 py-1 text-zinc-300 text-xs focus:outline-none focus:border-zinc-600 h-7"
             >
-              Clear Severity Filter
-            </button>
-          )}
-        </div>
-      </div>
+              <option value="ALL">All Threat Signatures</option>
+              {threatTypes.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+            <input
+              type="text"
+              placeholder="Search threat, path, IP..."
+              value={searchQuery}
+              onChange={(e) => {
+                if (setSearchQuery) setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-zinc-900 border border-zinc-800 rounded-md pl-8 pr-2.5 py-1 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 h-7 w-48"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Incident List */}
       {filteredEvents.length === 0 ? (
-        <div className="py-20 text-center border border-dashed border-neutral-800 rounded-2xl bg-[#08080a] p-8 space-y-3">
-          <ShieldCheck className="w-10 h-10 text-emerald-500 mx-auto" />
-          <h3 className="text-sm font-semibold text-white">No Security Incidents Found</h3>
-          <p className="text-xs text-neutral-400 max-w-sm mx-auto">
-            {securityEvents.length === 0
-              ? 'Perimeter policies are actively enforcing zero-trust ingress. Unauthorized attempts will appear here automatically.'
-              : 'No incidents match the active search and severity filters.'}
-          </p>
-        </div>
+        <Card className="border-zinc-800/80 bg-zinc-950 shadow-none">
+          <CardContent className="py-16 text-center p-8 space-y-2">
+            <ShieldCheck className="w-8 h-8 text-emerald-500/80 mx-auto" />
+            <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">No Incidents Detected</h3>
+            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+              Perimeter guardrails are operational. Any blocked routes, rate-limit exhausts, or SSRF probes will log here.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
-          <div className="rounded-2xl border border-neutral-800/80 bg-[#08080a] overflow-hidden shadow-lg">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-[#050507] border-b border-neutral-800/80 text-neutral-400 text-[11px] uppercase tracking-wider">
-                  <tr>
-                    <th className="py-3 px-4 font-medium w-8"></th>
-                    <th className="py-3 px-4 font-medium">Timestamp</th>
-                    <th className="py-3 px-4 font-medium">Severity</th>
-                    <th className="py-3 px-4 font-medium">Threat Classification</th>
-                    <th className="py-3 px-4 font-medium">Client IP</th>
-                    <th className="py-3 px-4 font-medium">Target Path</th>
-                    <th className="py-3 px-4 font-medium text-right">Risk Score</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-800/60 text-neutral-300">
-                  {paginatedEvents.map((evt) => {
-                    const isExpanded = expandedId === evt.id;
-                    const isCritical = evt.severity === 'CRITICAL';
-                    const isHigh = evt.severity === 'HIGH';
-                    const isMedium = evt.severity === 'MEDIUM';
+          <Card className="border-zinc-800/80 bg-zinc-950 shadow-none overflow-hidden">
+            <Table>
+              <TableHeader className="bg-zinc-900/40">
+                <TableRow className="border-b border-zinc-800/80 hover:bg-transparent">
+                  <TableHead className="w-8 py-2.5 px-3"></TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium text-zinc-400 text-xs h-9">Timestamp</TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium text-zinc-400 text-xs h-9">Threat Signature</TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium text-zinc-400 text-xs h-9">Target Path</TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium text-zinc-400 text-xs h-9">Attacker IP</TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium text-zinc-400 text-xs h-9">Severity</TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium text-zinc-400 text-xs h-9">Action Taken</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedEvents.map((evt, idx) => {
+                  const isExpanded = expandedId === evt.id;
+                  const type = evt.threatType || evt.eventType || 'PERIMETER_BLOCK';
+                  const path = evt.uriPath || evt.path || evt.target || '/api';
 
-                    return (
-                      <React.Fragment key={evt.id}>
-                        <tr
-                          onClick={() => setExpandedId(isExpanded ? null : evt.id)}
-                          className={`hover:bg-neutral-900/50 transition-colors cursor-pointer ${
-                            isExpanded ? 'bg-neutral-900/70' : ''
-                          }`}
-                        >
-                          <td className="py-3 px-4 text-neutral-500">
-                            {isExpanded ? (
-                              <ChevronDown className="w-3.5 h-3.5 text-white" />
-                            ) : (
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-neutral-400 text-[11px]">
-                            {formatTimestamp(evt.timestamp)}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                                isCritical
-                                  ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                                  : isHigh
-                                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                                  : isMedium
-                                  ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30'
-                                  : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
-                              }`}
-                            >
-                              {evt.severity}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 font-bold text-white">
-                            {evt.threatType}
-                          </td>
-                          <td className="py-3 px-4 text-neutral-300">{evt.clientIp || '127.0.0.1'}</td>
-                          <td className="py-3 px-4 text-white max-w-[200px] truncate" title={evt.uriPath}>
-                            {evt.httpMethod ? `${evt.httpMethod} ` : ''}
-                            {evt.uriPath}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <span className="font-semibold text-rose-400">
-                              {Math.round((evt.riskScore || 0) * 100)}%
-                            </span>
-                          </td>
-                        </tr>
+                  return (
+                    <React.Fragment key={evt.id || `incident-${idx}`}>
+                      <TableRow
+                        onClick={() => setExpandedId(isExpanded ? null : evt.id)}
+                        className={`border-b border-zinc-800/60 hover:bg-zinc-900/40 cursor-pointer transition-colors ${
+                          isExpanded ? 'bg-zinc-900/60' : ''
+                        }`}
+                      >
+                        <TableCell className="py-2.5 px-3 text-zinc-500">
+                          {isExpanded ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-zinc-300" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
+                          )}
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3 text-zinc-400 text-xs font-mono">
+                          {formatTimestamp(evt.timestamp)}
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3 text-zinc-200 font-medium text-xs">
+                          {type}
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3 text-zinc-300 font-mono text-xs max-w-[200px] truncate">
+                          {path}
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3 text-zinc-400 font-mono text-xs">
+                          {evt.clientIp || '198.51.100.24'}
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] font-mono px-1.5 py-0 ${
+                              evt.severity === 'CRITICAL'
+                                ? 'border-rose-800/50 bg-rose-950/40 text-rose-400'
+                                : evt.severity === 'HIGH'
+                                ? 'border-amber-800/50 bg-amber-950/40 text-amber-400'
+                                : 'border-zinc-800 bg-zinc-900 text-zinc-300'
+                            }`}
+                          >
+                            {evt.severity || 'HIGH'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-mono px-1.5 py-0 border-zinc-800 bg-zinc-900 text-zinc-300"
+                          >
+                            BLOCKED (429/401)
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
 
-                        {/* Expandable Forensic Details Drawer */}
-                        {isExpanded && (
-                          <tr className="bg-[#050507]">
-                            <td colSpan={7} className="p-4 border-t border-neutral-800/80">
-                              <div className="space-y-3 font-mono text-xs">
-                                <div className="flex items-center justify-between border-b border-neutral-800/80 pb-2">
-                                  <span className="text-[11px] font-semibold text-white">
-                                    Incident Forensics &bull; ID: {evt.id}
-                                  </span>
-                                  <span className="text-neutral-500 text-[11px]">
-                                    Project: {evt.projectId || 'Global'}
-                                  </span>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px]">
-                                  <div className="p-3 rounded-xl bg-[#08080a] border border-neutral-800/80">
-                                    <span className="text-neutral-500 block mb-1">Threat Type:</span>
-                                    <span className="text-rose-400 font-bold">{evt.threatType}</span>
-                                  </div>
-                                  <div className="p-3 rounded-xl bg-[#08080a] border border-neutral-800/80">
-                                    <span className="text-neutral-500 block mb-1">Source Client IP:</span>
-                                    <span className="text-white">{evt.clientIp}</span>
-                                  </div>
-                                  <div className="p-3 rounded-xl bg-[#08080a] border border-neutral-800/80">
-                                    <span className="text-neutral-500 block mb-1">Perimeter Action:</span>
-                                    <span className="text-emerald-400 font-semibold">REQUEST BLOCKED</span>
-                                  </div>
-                                </div>
-
-                                {evt.details && (
-                                  <div className="p-3 rounded-xl bg-[#08080a] border border-neutral-800/80">
-                                    <span className="text-neutral-500 block mb-1">Technical Mitigation Notes:</span>
-                                    <p className="text-neutral-200 font-sans leading-relaxed text-[11px]">
-                                      {evt.details}
-                                    </p>
-                                  </div>
-                                )}
+                      {isExpanded && (
+                        <TableRow className="border-b border-zinc-800 bg-zinc-950">
+                          <TableCell colSpan={7} className="p-4 text-xs font-mono space-y-2">
+                            <div className="text-zinc-400 text-xs leading-relaxed font-sans">
+                              {evt.details || evt.description || 'Perimeter signature tripped on gateway reverse-proxy.'}
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-zinc-800/60 text-xs">
+                              <div>
+                                <span className="text-zinc-500 block text-[10px] uppercase font-mono">Event ID:</span>
+                                <span className="text-zinc-300">{evt.id}</span>
                               </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                              <div>
+                                <span className="text-zinc-500 block text-[10px] uppercase font-mono">Mitigation Rule:</span>
+                                <span className="text-zinc-300">Token-Bucket / SSRF</span>
+                              </div>
+                              <div>
+                                <span className="text-zinc-500 block text-[10px] uppercase font-mono">Proxy Gateway:</span>
+                                <span className="text-zinc-300">:8080 Spring Cloud</span>
+                              </div>
+                              <div className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onNavigate && onNavigate('traffic')}
+                                  className="h-6 px-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800"
+                                >
+                                  <span>View Stream</span>
+                                  <ArrowRight className="h-3 w-3 ml-1" />
+                                </Button>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Card>
 
           <Pagination
             currentPage={currentPage}
