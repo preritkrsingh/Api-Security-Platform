@@ -10,7 +10,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Activity,
-  PlusCircle
+  PlusCircle,
+  Workflow
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -24,6 +25,7 @@ export default function Sidebar({
 }) {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: BarChart2 },
+    { id: 'architecture', label: 'Architecture', icon: Workflow },
     { id: 'projects', label: 'Projects', icon: Layers },
     { id: 'apis', label: 'APIs & Services', icon: Box },
     { id: 'register-api', label: 'Register API', icon: PlusCircle },

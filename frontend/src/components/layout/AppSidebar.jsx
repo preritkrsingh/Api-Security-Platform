@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   Shield,
   LayoutDashboard,
+  Workflow,
   Layers,
   Network,
   Activity,
@@ -38,6 +39,7 @@ export default function AppSidebar({
 
   const mainNav = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
+    { id: "architecture", label: "Architecture", icon: Workflow },
     { id: "apis", label: "Endpoints", icon: Network },
     { id: "traffic", label: "Telemetry", icon: Activity },
     { id: "incidents", label: "Incidents", icon: ShieldAlert },

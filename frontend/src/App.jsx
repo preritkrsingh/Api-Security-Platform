@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { toast } from '@/components/ui/use-toast';
 
 import OverviewView from './components/OverviewView';
+import ArchitectureView from './components/ArchitectureView';
 import ProjectsView from './components/ProjectsView';
 import ApisView from './components/ApisView';
 import TrafficMonitoringView from './components/TrafficMonitoringView';
@@ -426,6 +427,13 @@ export default function App() {
                   if (apis.length > 0) setKeysApi(apis[0]);
                   else setActiveTab('apis');
                 }}
+              />
+            )}
+
+            {activeTab === 'architecture' && (
+              <ArchitectureView
+                serviceStatus={serviceStatus}
+                onNavigate={(tab) => setActiveTab(tab)}
               />
             )}
 
